@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Connection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <div id="status">Testing...</div>
+    <div id="results"></div>
+
+    <script>
+        // Supabase 설정
+        const SUPABASE_CONFIG = {
+            url: 'https://yenfccoefczqxckbizqa.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDkyNzksImV4cCI6MjA2MTUyNTI3OX0.U1iQUOaNPSrEHf1w_ePqgYzJiRO6Bi48E2Np2hY0nCQ'
+        };
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        async function testConnection() {
+            const statusEl = document.getElementById('status');
+            const resultsEl = document.getElementById('results');
+            
+            try {
+                // 1. 테이블 조회 테스트
+                console.log('Testing Supabase connection...');
+                statusEl.innerHTML = '<h2>Testing connection...</h2>';
+                
+                // points_system 테이블 조회
+                const { data: pointsData, error: pointsError } = await supabaseClient
+                    .from('points_system')
+                    .select('*')
+                    .limit(5);
+                
+                if (pointsError) {
+                    throw pointsError;
+                }
+                
+                resultsEl.innerHTML += '<h3>✅ Points System Data:</h3>';
+                resultsEl.innerHTML += '<pre>' + JSON.stringify(pointsData, null, 2) + '</pre>';
+                
+                // contents_idea 테이블 조회
+                const { data: ideasData, error: ideasError } = await supabaseClient
+                    .from('contents_idea')
+                    .select('id, title_vi, category, is_upload')
+                    .eq('is_upload', false)
+                    .limit(5);
+                
+                if (ideasError) {
+                    throw ideasError;
+                }
+                
+                resultsEl.innerHTML += '<h3>✅ Content Ideas Data:</h3>';
+                resultsEl.innerHTML += '<pre>' + JSON.stringify(ideasData, null, 2) + '</pre>';
+                
+                statusEl.innerHTML = '<h2 style="color: green;">✅ Connection Successful!</h2>';
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                statusEl.innerHTML = '<h2 style="color: red;">❌ Connection Failed!</h2>';
+                resultsEl.innerHTML = '<pre style="color: red;">' + JSON.stringify(error, null, 2) + '</pre>';
+            }
+        }
+
+        // 페이지 로드 시 테스트 실행
+        testConnection();
+    </script>
+</body>
+</html>

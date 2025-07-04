@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                resultDiv.innerHTML = '<p>Testing connection...</p>';
+                
+                // Test 1: Basic connection
+                const { data: test1, error: error1 } = await supabaseClient
+                    .from('contents_idea')
+                    .select('count')
+                    .limit(1);
+                
+                if (error1) {
+                    resultDiv.innerHTML += `<p style="color: red;">Error 1: ${error1.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">✓ Basic connection works</p>`;
+                }
+                
+                // Test 2: Get ideas
+                const { data: ideas, error: error2 } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .eq('is_upload', false)
+                    .limit(5);
+                
+                if (error2) {
+                    resultDiv.innerHTML += `<p style="color: red;">Error 2: ${error2.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">✓ Found ${ideas.length} ideas</p>`;
+                }
+                
+                // Test 3: Check CORS
+                resultDiv.innerHTML += `<p>Current URL: ${window.location.href}</p>`;
+                resultDiv.innerHTML += `<p>Protocol: ${window.location.protocol}</p>`;
+                
+            } catch (err) {
+                resultDiv.innerHTML += `<p style="color: red;">Unexpected error: ${err.message}</p>`;
+            }
+        }
+        
+        testConnection();
+    </script>
+</body>
+</html>

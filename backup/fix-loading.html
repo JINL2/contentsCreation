@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Loading Issue</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Fixing Loading Issue</h1>
+    <button onclick="manualLoadIdeas()">Manually Load Ideas</button>
+    <div id="result"></div>
+    
+    <script>
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        
+        // Simulate minimal GAME_CONFIG
+        let GAME_CONFIG = {
+            points: { select_idea: 10 }
+        };
+        
+        async function manualLoadIdeas() {
+            try {
+                // Direct call to loadContentIdeas logic
+                const { data: availableIdeas, error } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .eq('is_upload', false)
+                    .limit(5);
+                
+                if (error) {
+                    document.getElementById('result').innerHTML = `Error: ${error.message}`;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <p>Found ${availableIdeas.length} ideas</p>
+                        <p>Redirecting to main page with forced load...</p>
+                    `;
+                    
+                    // Force reload with a special parameter
+                    setTimeout(() => {
+                        window.location.href = 'http://localhost/contents_helper_website/?user_id=0d2e61ad-e230-454e-8b90-efbe1c1a9268&user_name=Jin&company_id=ebd66ba7-fde7-4332-b6b5-0d8a7f615497&store_id=16f4c231-185a-4564-b473-bad1e9b305e8&force_load=true';
+                    }, 2000);
+                }
+            } catch (err) {
+                document.getElementById('result').innerHTML = `Exception: ${err.message}`;
+            }
+        }
+        
+        // Auto-run on load
+        manualLoadIdeas();
+    </script>
+</body>
+</html>

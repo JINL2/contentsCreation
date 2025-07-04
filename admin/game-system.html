@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게임 시스템 관리 - Contents Helper</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .admin-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .admin-table th,
+        .admin-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .admin-table th {
+            background: #f3f4f6;
+            font-weight: 600;
+        }
+        .edit-btn {
+            padding: 0.25rem 0.75rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .edit-btn:hover {
+            background: #2563eb;
+        }
+        .save-btn {
+            background: #10b981;
+        }
+        .save-btn:hover {
+            background: #059669;
+        }
+        .cancel-btn {
+            background: #6b7280;
+            margin-left: 0.5rem;
+        }
+        .cancel-btn:hover {
+            background: #4b5563;
+        }
+        input[type="number"],
+        input[type="text"] {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .status-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">게임 시스템 관리</h1>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <div class="status-message" id="statusMessage"></div>
+
+            <!-- 점수 시스템 -->
+            <div class="admin-section">
+                <h2>🎯 점수 시스템 관리</h2>
+                <p>각 활동별 획득 점수를 설정할 수 있습니다.</p>
+                <table class="admin-table" id="pointsTable">
+                    <thead>
+                        <tr>
+                            <th>활동 유형</th>
+                            <th>활동명</th>
+                            <th>아이콘</th>
+                            <th>점수</th>
+                            <th>설명</th>
+                            <th>상태</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 동적으로 생성 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 레벨 시스템 -->
+            <div class="admin-section">
+                <h2>🏆 레벨 시스템 관리</h2>
+                <p>레벨별 요구 점수와 정보를 설정할 수 있습니다.</p>
+                <table class="admin-table" id="levelsTable">
+                    <thead>
+                        <tr>
+                            <th>레벨</th>
+                            <th>레벨명</th>
+                            <th>아이콘</th>
+                            <th>필요 점수</th>
+                            <th>색상</th>
+                            <th>상태</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 동적으로 생성 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 업적 시스템 -->
+            <div class="admin-section">
+                <h2>🎖️ 업적 시스템 관리</h2>
+                <p>업적 조건과 보상을 설정할 수 있습니다.</p>
+                <table class="admin-table" id="achievementsTable">
+                    <thead>
+                        <tr>
+                            <th>코드</th>
+                            <th>업적명</th>
+                            <th>아이콘</th>
+                            <th>조건 유형</th>
+                            <th>조건 값</th>
+                            <th>보상 점수</th>
+                            <th>상태</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 동적으로 생성 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadPointsSystem();
+            await loadLevelSystem();
+            await loadAchievementSystem();
+        });
+
+        // 점수 시스템 로드
+        async function loadPointsSystem() {
+            const { data, error } = await supabaseClient
+                .from('points_system')
+                .select('*')
+                .order('points', { ascending: false });
+
+            if (error) {
+                showMessage('점수 시스템 로드 실패: ' + error.message, 'error');
+                return;
+            }
+
+            const tbody = document.querySelector('#pointsTable tbody');
+            tbody.innerHTML = data.map(item => `
+                <tr data-id="${item.id}">
+                    <td>${item.activity_type}</td>
+                    <td>${item.activity_name}</td>
+                    <td>${item.icon || ''}</td>
+                    <td class="points-edit">${item.points}</td>
+                    <td>${item.description || ''}</td>
+                    <td>${item.is_active ? '✅ 활성' : '❌ 비활성'}</td>
+                    <td>
+                        <button class="edit-btn" onclick="editPoints('${item.id}')">수정</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 레벨 시스템 로드
+        async function loadLevelSystem() {
+            const { data, error } = await supabaseClient
+                .from('level_system')
+                .select('*')
+                .order('level_number', { ascending: true });
+
+            if (error) {
+                showMessage('레벨 시스템 로드 실패: ' + error.message, 'error');
+                return;
+            }
+
+            const tbody = document.querySelector('#levelsTable tbody');
+            tbody.innerHTML = data.map(item => `
+                <tr data-id="${item.id}">
+                    <td>${item.level_number}</td>
+                    <td>${item.level_name}</td>
+                    <td>${item.icon || ''}</td>
+                    <td class="points-edit">${item.required_points}</td>
+                    <td style="color: ${item.color}">${item.color || ''}</td>
+                    <td>${item.is_active ? '✅ 활성' : '❌ 비활성'}</td>
+                    <td>
+                        <button class="edit-btn" onclick="editLevel('${item.id}')">수정</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 업적 시스템 로드
+        async function loadAchievementSystem() {
+            const { data, error } = await supabaseClient
+                .from('achievement_system')
+                .select('*')
+                .order('points_reward', { ascending: false });
+
+            if (error) {
+                showMessage('업적 시스템 로드 실패: ' + error.message, 'error');
+                return;
+            }
+
+            const tbody = document.querySelector('#achievementsTable tbody');
+            tbody.innerHTML = data.map(item => `
+                <tr data-id="${item.id}">
+                    <td>${item.achievement_code}</td>
+                    <td>${item.achievement_name}</td>
+                    <td>${item.icon || ''}</td>
+                    <td>${item.condition_type || ''}</td>
+                    <td>${item.condition_value || ''}</td>
+                    <td class="points-edit">${item.points_reward}</td>
+                    <td>${item.is_active ? '✅ 활성' : '❌ 비활성'}</td>
+                    <td>
+                        <button class="edit-btn" onclick="editAchievement('${item.id}')">수정</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 점수 편집
+        async function editPoints(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            const pointsCell = row.querySelector('.points-edit');
+            const currentValue = pointsCell.textContent;
+            
+            pointsCell.innerHTML = `
+                <input type="number" value="${currentValue}" id="edit-${id}">
+                <button class="edit-btn save-btn" onclick="savePoints('${id}')">저장</button>
+                <button class="edit-btn cancel-btn" onclick="loadPointsSystem()">취소</button>
+            `;
+        }
+
+        // 점수 저장
+        async function savePoints(id) {
+            const newValue = document.getElementById(`edit-${id}`).value;
+            
+            const { error } = await supabaseClient
+                .from('points_system')
+                .update({ points: parseInt(newValue) })
+                .eq('id', id);
+
+            if (error) {
+                showMessage('저장 실패: ' + error.message, 'error');
+            } else {
+                showMessage('점수가 업데이트되었습니다!', 'success');
+                loadPointsSystem();
+            }
+        }
+
+        // 레벨 편집
+        async function editLevel(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            const pointsCell = row.querySelector('.points-edit');
+            const currentValue = pointsCell.textContent;
+            
+            pointsCell.innerHTML = `
+                <input type="number" value="${currentValue}" id="edit-${id}">
+                <button class="edit-btn save-btn" onclick="saveLevel('${id}')">저장</button>
+                <button class="edit-btn cancel-btn" onclick="loadLevelSystem()">취소</button>
+            `;
+        }
+
+        // 레벨 저장
+        async function saveLevel(id) {
+            const newValue = document.getElementById(`edit-${id}`).value;
+            
+            const { error } = await supabaseClient
+                .from('level_system')
+                .update({ required_points: parseInt(newValue) })
+                .eq('id', id);
+
+            if (error) {
+                showMessage('저장 실패: ' + error.message, 'error');
+            } else {
+                showMessage('레벨 요구 점수가 업데이트되었습니다!', 'success');
+                loadLevelSystem();
+            }
+        }
+
+        // 업적 편집
+        async function editAchievement(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            const pointsCell = row.querySelector('.points-edit');
+            const currentValue = pointsCell.textContent;
+            
+            pointsCell.innerHTML = `
+                <input type="number" value="${currentValue}" id="edit-${id}">
+                <button class="edit-btn save-btn" onclick="saveAchievement('${id}')">저장</button>
+                <button class="edit-btn cancel-btn" onclick="loadAchievementSystem()">취소</button>
+            `;
+        }
+
+        // 업적 저장
+        async function saveAchievement(id) {
+            const newValue = document.getElementById(`edit-${id}`).value;
+            
+            const { error } = await supabaseClient
+                .from('achievement_system')
+                .update({ points_reward: parseInt(newValue) })
+                .eq('id', id);
+
+            if (error) {
+                showMessage('저장 실패: ' + error.message, 'error');
+            } else {
+                showMessage('업적 보상 점수가 업데이트되었습니다!', 'success');
+                loadAchievementSystem();
+            }
+        }
+
+        // 메시지 표시
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('statusMessage');
+            messageEl.textContent = message;
+            messageEl.className = `status-message ${type}`;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

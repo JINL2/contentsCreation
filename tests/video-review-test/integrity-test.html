@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Review Integrity Test - Contents Helper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #FF6B35;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+        
+        .btn:hover {
+            opacity: 0.8;
+        }
+        
+        .status-box {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #FF6B35;
+        }
+        
+        .log-container {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-error {
+            color: #ff6666;
+        }
+        
+        .log-success {
+            color: #50fa7b;
+        }
+        
+        .log-warning {
+            color: #f1fa8c;
+        }
+        
+        .log-info {
+            color: #8be9fd;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .test-params {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .param-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .param-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .param-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .scenario-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Video Review Integrity Test</h1>
+    
+    <!-- Test Parameters -->
+    <div class="test-section">
+        <h2>Test Parameters</h2>
+        <div class="test-params">
+            <div class="param-group">
+                <label>User ID:</label>
+                <input type="text" id="userId" value="0d2e61ad-e230-454e-8b90-efbe1c1a9268">
+            </div>
+            <div class="param-group">
+                <label>User Name:</label>
+                <input type="text" id="userName" value="Jin">
+            </div>
+            <div class="param-group">
+                <label>Company ID:</label>
+                <input type="text" id="companyId" value="ebd66ba7-fde7-4332-b6b5-0d8a7f615497">
+            </div>
+            <div class="param-group">
+                <label>Store ID:</label>
+                <input type="text" id="storeId" value="16f4c231-185a-4564-b473-bad1e9b305e8">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test Scenarios -->
+    <div class="test-section">
+        <h2>Test Scenarios</h2>
+        
+        <h3>1. Normal Operation Test</h3>
+        <div class="test-controls">
+            <button class="btn btn-primary" onclick="openNormalReview()">
+                🎬 Open Normal Review Page
+            </button>
+            <button class="btn btn-success" onclick="testVideoLoad()">
+                ✅ Test Video Load Success
+            </button>
+        </div>
+        
+        <h3>2. Video Error Tests</h3>
+        <div class="scenario-buttons">
+            <button class="btn btn-danger" onclick="testBrokenVideo()">
+                ❌ Test Broken Video URL
+            </button>
+            <button class="btn btn-danger" onclick="testNetworkError()">
+                📡 Simulate Network Error
+            </button>
+            <button class="btn btn-danger" onclick="testNoVideos()">
+                🚫 Test No Videos Available
+            </button>
+        </div>
+        
+        <h3>3. Integrity Violation Tests</h3>
+        <div class="scenario-buttons">
+            <button class="btn btn-warning" onclick="testEarlyRating()">
+                ⏰ Try Rating Before 3 Seconds
+            </button>
+            <button class="btn btn-warning" onclick="testManipulateUI()">
+                🔧 Try UI Manipulation
+            </button>
+            <button class="btn btn-warning" onclick="testDevToolsHack()">
+                💻 Simulate DevTools Hack
+            </button>
+        </div>
+        
+        <h3>4. Flow Tests</h3>
+        <div class="test-controls">
+            <button class="btn btn-primary" onclick="testAutoRedirect()">
+                🔄 Test Auto Redirect (No Videos)
+            </button>
+            <button class="btn btn-primary" onclick="testNextVideoFlow()">
+                ➡️ Test Next Video Flow
+            </button>
+        </div>
+    </div>
+    
+    <!-- Status Display -->
+    <div class="test-section">
+        <h2>Current Status</h2>
+        <div class="status-box">
+            <div id="statusDisplay">
+                <p><strong>Test Status:</strong> <span id="testStatus">Ready</span></p>
+                <p><strong>Current Test:</strong> <span id="currentTest">None</span></p>
+                <p><strong>Result:</strong> <span id="testResult">-</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Log Console -->
+    <div class="test-section">
+        <h2>Test Log</h2>
+        <div class="log-container" id="logConsole">
+            <div class="log-entry log-info">Test console initialized...</div>
+        </div>
+        <div class="test-controls" style="margin-top: 10px;">
+            <button class="btn btn-warning" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+    
+    <!-- Review Page Frame -->
+    <div class="test-section">
+        <h2>Video Review Page</h2>
+        <iframe id="reviewFrame" src="about:blank"></iframe>
+    </div>
+    
+    <script>
+        // Logging functions
+        function log(message, type = 'info') {
+            const logConsole = document.getElementById('logConsole');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logConsole.appendChild(entry);
+            logConsole.scrollTop = logConsole.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('logConsole').innerHTML = '<div class="log-entry log-info">Log cleared...</div>';
+        }
+        
+        function updateStatus(status, test, result) {
+            document.getElementById('testStatus').textContent = status;
+            document.getElementById('currentTest').textContent = test;
+            document.getElementById('testResult').textContent = result;
+        }
+        
+        // Get review URL with parameters
+        function getReviewURL(customParams = {}) {
+            const params = {
+                user_id: document.getElementById('userId').value,
+                user_name: document.getElementById('userName').value,
+                company_id: document.getElementById('companyId').value,
+                store_id: document.getElementById('storeId').value,
+                ...customParams
+            };
+            
+            const queryString = new URLSearchParams(params).toString();
+            return `../../video-review.html?${queryString}`;
+        }
+        
+        // Test Functions
+        function openNormalReview() {
+            log('Opening normal review page...', 'info');
+            updateStatus('Running', 'Normal Review', 'Loading...');
+            
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            iframe.onload = () => {
+                log('Review page loaded successfully', 'success');
+                updateStatus('Running', 'Normal Review', 'Page Loaded');
+            };
+            
+            iframe.onerror = () => {
+                log('Failed to load review page', 'error');
+                updateStatus('Error', 'Normal Review', 'Failed to Load');
+            };
+        }
+        
+        function testVideoLoad() {
+            log('Testing video load functionality...', 'info');
+            updateStatus('Running', 'Video Load Test', 'Testing...');
+            
+            // Open review page and check if video loads
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            iframe.onload = () => {
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const videoElement = iframeDoc.getElementById('reviewVideo');
+                        
+                        if (videoElement && videoElement.readyState >= 2) {
+                            log('Video loaded successfully', 'success');
+                            updateStatus('Success', 'Video Load Test', 'Video Loaded');
+                        } else {
+                            log('Video not ready', 'warning');
+                            updateStatus('Warning', 'Video Load Test', 'Video Not Ready');
+                        }
+                    } catch (e) {
+                        log('Cannot access iframe content: ' + e.message, 'error');
+                        updateStatus('Error', 'Video Load Test', 'Access Denied');
+                    }
+                }, 3000);
+            };
+        }
+        
+        function testBrokenVideo() {
+            log('Testing broken video URL...', 'info');
+            updateStatus('Running', 'Broken Video Test', 'Testing...');
+            
+            // This would require modifying the video URL in the database
+            // For now, we just open the page and observe
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL({ test_mode: 'broken_video' });
+            
+            log('Opened review page with broken video test mode', 'warning');
+            updateStatus('Running', 'Broken Video Test', 'Observe Behavior');
+        }
+        
+        function testNetworkError() {
+            log('Simulating network error...', 'info');
+            updateStatus('Running', 'Network Error Test', 'Testing...');
+            
+            // Open page and then disconnect network
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            log('To test: Disable network after page loads', 'warning');
+            updateStatus('Manual', 'Network Error Test', 'Disable Network');
+        }
+        
+        function testNoVideos() {
+            log('Testing no videos scenario...', 'info');
+            updateStatus('Running', 'No Videos Test', 'Testing...');
+            
+            // Use a company ID that has no videos
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL({ company_id: '00000000-0000-0000-0000-000000000000' });
+            
+            log('Opened review page with empty company ID', 'info');
+            updateStatus('Running', 'No Videos Test', 'Should Show Empty State');
+        }
+        
+        function testEarlyRating() {
+            log('Testing early rating attempt...', 'info');
+            updateStatus('Running', 'Early Rating Test', 'Testing...');
+            
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            iframe.onload = () => {
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const stars = iframeDoc.querySelectorAll('.star');
+                        
+                        if (stars.length > 0) {
+                            log('Attempting to click star before 3 seconds...', 'warning');
+                            stars[2].click(); // Try to rate 3 stars
+                            
+                            setTimeout(() => {
+                                const activeStars = iframeDoc.querySelectorAll('.star.active');
+                                if (activeStars.length === 0) {
+                                    log('Rating blocked successfully!', 'success');
+                                    updateStatus('Success', 'Early Rating Test', 'Rating Blocked');
+                                } else {
+                                    log('Rating was not blocked!', 'error');
+                                    updateStatus('Failed', 'Early Rating Test', 'Rating Not Blocked');
+                                }
+                            }, 500);
+                        }
+                    } catch (e) {
+                        log('Cannot access iframe content: ' + e.message, 'error');
+                    }
+                }, 1000); // Try after 1 second (before 3 second minimum)
+            };
+        }
+        
+        function testManipulateUI() {
+            log('Testing UI manipulation...', 'info');
+            updateStatus('Running', 'UI Manipulation Test', 'Testing...');
+            
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            iframe.onload = () => {
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const controlsDiv = iframeDoc.getElementById('reviewControls');
+                        
+                        if (controlsDiv) {
+                            log('Forcing controls to display...', 'warning');
+                            controlsDiv.style.display = 'flex';
+                            
+                            setTimeout(() => {
+                                if (controlsDiv.style.display === 'none') {
+                                    log('UI manipulation blocked!', 'success');
+                                    updateStatus('Success', 'UI Manipulation Test', 'Manipulation Blocked');
+                                } else {
+                                    log('UI manipulation not blocked', 'error');
+                                    updateStatus('Failed', 'UI Manipulation Test', 'Not Blocked');
+                                }
+                            }, 200);
+                        }
+                    } catch (e) {
+                        log('Cannot access iframe content: ' + e.message, 'error');
+                    }
+                }, 2000);
+            };
+        }
+        
+        function testDevToolsHack() {
+            log('Simulating DevTools hack...', 'info');
+            updateStatus('Running', 'DevTools Hack Test', 'Testing...');
+            
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            iframe.onload = () => {
+                log('Instructions:', 'warning');
+                log('1. Open DevTools (F12)', 'warning');
+                log('2. Try to modify currentState.videoLoaded = true', 'warning');
+                log('3. Try to enable rating buttons manually', 'warning');
+                log('4. Check if rating is still blocked', 'warning');
+                
+                updateStatus('Manual', 'DevTools Hack Test', 'Follow Instructions');
+            };
+        }
+        
+        function testAutoRedirect() {
+            log('Testing auto redirect with no videos...', 'info');
+            updateStatus('Running', 'Auto Redirect Test', 'Testing...');
+            
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL({ company_id: '00000000-0000-0000-0000-000000000000' });
+            
+            let redirectDetected = false;
+            const checkInterval = setInterval(() => {
+                try {
+                    const currentSrc = iframe.contentWindow.location.href;
+                    if (currentSrc.includes('index.html')) {
+                        redirectDetected = true;
+                        clearInterval(checkInterval);
+                        log('Redirect to main page detected!', 'success');
+                        updateStatus('Success', 'Auto Redirect Test', 'Redirected to Main');
+                    }
+                } catch (e) {
+                    // Cross-origin error expected if redirected
+                }
+            }, 1000);
+            
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                if (!redirectDetected) {
+                    log('No redirect detected after 6 seconds', 'warning');
+                    updateStatus('Warning', 'Auto Redirect Test', 'No Redirect');
+                }
+            }, 6000);
+        }
+        
+        function testNextVideoFlow() {
+            log('Testing next video flow...', 'info');
+            updateStatus('Running', 'Next Video Flow', 'Testing...');
+            
+            const iframe = document.getElementById('reviewFrame');
+            iframe.src = getReviewURL();
+            
+            log('Instructions:', 'info');
+            log('1. Wait for video to load', 'info');
+            log('2. Watch for 3+ seconds', 'info');
+            log('3. Rate the video', 'info');
+            log('4. Verify next video loads automatically', 'info');
+            
+            updateStatus('Manual', 'Next Video Flow', 'Follow Instructions');
+        }
+        
+        // Apache Test
+        function checkApacheStatus() {
+            log('Checking Apache status...', 'info');
+            
+            fetch(window.location.href)
+                .then(response => {
+                    if (response.ok) {
+                        log('Apache is running correctly', 'success');
+                    } else {
+                        log('Apache returned status: ' + response.status, 'warning');
+                    }
+                })
+                .catch(error => {
+                    log('Apache check failed: ' + error.message, 'error');
+                });
+        }
+        
+        // Initialize
+        window.onload = () => {
+            log('Test page initialized', 'success');
+            log('Current URL: ' + window.location.href, 'info');
+            checkApacheStatus();
+            
+            // Check if we're in HTTP context
+            if (window.location.protocol === 'file:') {
+                log('WARNING: Running in file:// protocol. Some tests may not work correctly.', 'error');
+                log('Please access via http://localhost/...', 'error');
+            } else {
+                log('Running in ' + window.location.protocol + ' protocol', 'success');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Upload Test - Contents Helper</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #FF6B35;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background: #fff5f0;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            background: #ffe8e0;
+            border-color: #E55100;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .upload-label {
+            cursor: pointer;
+            display: block;
+            font-size: 18px;
+        }
+        .upload-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #E55100;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #video-preview {
+            max-width: 100%;
+            margin: 20px auto;
+            display: none;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .url-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Video Upload Test</h1>
+        
+        <div class="info-section">
+            <h3>테스트 정보</h3>
+            <p><strong>User ID:</strong> <span id="user-id">0d2e61ad-e230-454e-8b90-efbe1c1a9268</span></p>
+            <p><strong>User Name:</strong> <span id="user-name">Jin</span></p>
+            <p><strong>Content ID:</strong> <span id="content-id">test-content-001</span></p>
+        </div>
+
+        <div class="upload-area">
+            <input type="file" id="video-file" accept="video/*">
+            <label for="video-file" class="upload-label">
+                <span class="upload-icon">📁</span>
+                <p>비디오 파일을 선택하세요</p>
+                <span style="color: #666; font-size: 14px;">MP4, MOV, AVI (최대 50MB)</span>
+            </label>
+        </div>
+
+        <video id="video-preview" controls></video>
+
+        <div style="text-align: center;">
+            <button id="upload-btn" disabled>🚀 업로드 시작</button>
+            <button id="check-storage">📦 Storage 확인</button>
+            <button id="check-uploads">📋 업로드 목록 확인</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        
+        <div id="result" style="display: none;">
+            <h3>업로드 결과</h3>
+            <p><strong>Video URL:</strong></p>
+            <div class="url-display" id="video-url"></div>
+            <p><strong>Upload ID:</strong> <span id="upload-id"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const supabaseUrl = 'https://yenfccoefczqxckbizqa.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDkyNzksImV4cCI6MjA2MTUyNTI3OX0.U1iQUOaNPSrEHf1w_ePqgYzJiRO6Bi48E2Np2hY0nCQ';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // 전역 변수
+        let selectedFile = null;
+
+        // 상태 표시 함수
+        function showStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            status.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        // 파일 선택 핸들러
+        document.getElementById('video-file').addEventListener('change', function(e) {
+            e.stopPropagation(); // 이벤트 전파 중지
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                
+                // 파일 정보 표시
+                showStatus(`선택된 파일: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`, 'success');
+                
+                // 비디오 미리보기
+                const videoPreview = document.getElementById('video-preview');
+                videoPreview.src = URL.createObjectURL(file);
+                videoPreview.style.display = 'block';
+                
+                // 업로드 버튼 활성화
+                document.getElementById('upload-btn').disabled = false;
+            }
+        });
+
+        // 비디오 업로드 함수
+        async function uploadVideo() {
+            if (!selectedFile) return;
+
+            const userId = document.getElementById('user-id').textContent;
+            const contentId = document.getElementById('content-id').textContent;
+
+            try {
+                showStatus('비디오 업로드 중...', 'loading');
+
+                // 파일명 생성
+                const timestamp = Date.now();
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${userId}_${contentId}_${timestamp}.${fileExt}`;
+                const filePath = `videos/${fileName}`;
+
+                console.log('업로드 시작:', filePath);
+
+                // Storage에 업로드
+                const { data, error } = await supabase.storage
+                    .from('contents-videos')
+                    .upload(filePath, selectedFile, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Public URL 가져오기
+                const { data: { publicUrl } } = supabase.storage
+                    .from('contents-videos')
+                    .getPublicUrl(filePath);
+
+                console.log('업로드 성공! URL:', publicUrl);
+
+                // content_uploads 테이블에 저장
+                const { data: uploadData, error: dbError } = await supabase
+                    .from('content_uploads')
+                    .insert({
+                        content_id: contentId,
+                        user_id: userId,
+                        upload_url: publicUrl,
+                        file_name: selectedFile.name,
+                        upload_time: new Date().toISOString(),
+                        status: 'uploaded',
+                        metadata: {
+                            original_name: selectedFile.name,
+                            file_size: selectedFile.size,
+                            upload_source: 'test_page'
+                        }
+                    })
+                    .select()
+                    .single();
+
+                if (dbError) {
+                    throw dbError;
+                }
+
+                // 결과 표시
+                showStatus('업로드 성공!', 'success');
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('video-url').textContent = publicUrl;
+                document.getElementById('upload-id').textContent = uploadData.id;
+
+            } catch (error) {
+                console.error('업로드 실패:', error);
+                showStatus(`업로드 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // Storage 확인
+        async function checkStorage() {
+            try {
+                showStatus('Storage 확인 중...', 'loading');
+                
+                const { data, error } = await supabase.storage
+                    .from('contents-videos')
+                    .list('videos', {
+                        limit: 10,
+                        offset: 0
+                    });
+
+                if (error) {
+                    throw error;
+                }
+
+                console.log('Storage 파일 목록:', data);
+                showStatus(`Storage에 ${data.length}개의 파일이 있습니다.`, 'success');
+
+            } catch (error) {
+                console.error('Storage 확인 실패:', error);
+                showStatus(`Storage 확인 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 업로드 목록 확인
+        async function checkUploads() {
+            try {
+                showStatus('업로드 목록 확인 중...', 'loading');
+                
+                const userId = document.getElementById('user-id').textContent;
+                const { data, error } = await supabase
+                    .from('content_uploads')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw error;
+                }
+
+                console.log('업로드 목록:', data);
+                showStatus(`${data.length}개의 업로드를 찾았습니다.`, 'success');
+
+                // 콘솔에 상세 정보 출력
+                data.forEach((upload, index) => {
+                    console.log(`${index + 1}. ${upload.file_name} - ${upload.upload_url}`);
+                });
+
+            } catch (error) {
+                console.error('업로드 목록 확인 실패:', error);
+                showStatus(`업로드 목록 확인 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 이벤트 리스너
+        document.getElementById('upload-btn').addEventListener('click', uploadVideo);
+        document.getElementById('check-storage').addEventListener('click', checkStorage);
+        document.getElementById('check-uploads').addEventListener('click', checkUploads);
+
+        // 페이지 로드시 초기화
+        console.log('Video Upload Test 페이지 로드됨');
+        console.log('Supabase 클라이언트:', supabase);
+    </script>
+</body>
+</html>

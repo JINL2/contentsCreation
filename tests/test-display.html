@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Scenario Display</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+        }
+        .idea-card {
+            background: #f8f9fa;
+            border: 2px solid #FF6B35;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .idea-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(255,107,53,0.3);
+        }
+        .idea-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .scenario-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .scenario-part {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .hook1 { 
+            background: #fff3e0; 
+            border-color: #ff6b35;
+        }
+        .body1 { 
+            background: #e3f2fd; 
+            border-color: #2196f3;
+        }
+        .hook2 { 
+            background: #fff8e1; 
+            border-color: #ff9800;
+        }
+        .body2 { 
+            background: #e1f5fe; 
+            border-color: #03a9f4;
+        }
+        .conclusion { 
+            background: #e8f5e9; 
+            border-color: #4caf50;
+        }
+        .part-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .viral-tags {
+            margin-top: 10px;
+        }
+        .viral-tag {
+            display: inline-block;
+            background: #ff6b35;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin: 2px;
+            font-size: 12px;
+        }
+        .selected-idea {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            background: #FF6B35;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #E55100;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Contents Helper - Test Scenario Display</h1>
+        <p style="text-align: center; color: #666;">Kiểm tra hiển thị hook1, body1, hook2, body2, conclusion</p>
+        
+        <div id="ideas-container">
+            <div class="loading">Đang tải dữ liệu từ Supabase...</div>
+        </div>
+        
+        <div id="selected-idea" class="selected-idea"></div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn" onclick="loadIdeas()">🔄 Tải lại ý tưởng</button>
+            <button class="btn" onclick="showRawData()">📊 Xem dữ liệu gốc</button>
+        </div>
+        
+        <div id="raw-data" style="display: none; margin-top: 20px;">
+            <h3>Dữ liệu gốc từ Supabase:</h3>
+            <pre id="raw-content" style="background: #f5f5f5; padding: 20px; border-radius: 5px; overflow-x: auto;"></pre>
+        </div>
+    </div>
+
+    <script>
+        // Supabase config
+        const SUPABASE_URL = 'https://yenfccoefczqxckbizqa.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDkyNzksImV4cCI6MjA2MTUyNTI3OX0.U1iQUOaNPSrEHf1w_ePqgYzJiRO6Bi48E2Np2hY0nCQ';
+        
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let allIdeas = [];
+        
+        async function loadIdeas() {
+            const container = document.getElementById('ideas-container');
+            container.innerHTML = '<div class="loading">Đang tải dữ liệu từ Supabase...</div>';
+            
+            try {
+                // Lấy 5 ideas có scenario format mới
+                const { data, error } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .eq('is_upload', false)
+                    .limit(5);
+                
+                if (error) throw error;
+                
+                allIdeas = data;
+                displayIdeas(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = `<div class="error">Lỗi: ${error.message}</div>`;
+            }
+        }
+        
+        function displayIdeas(ideas) {
+            const container = document.getElementById('ideas-container');
+            container.innerHTML = '<h2>Chọn một ý tưởng để xem chi tiết scenario:</h2>';
+            
+            ideas.forEach((idea, index) => {
+                const card = document.createElement('div');
+                card.className = 'idea-card';
+                card.onclick = () => showScenarioDetail(idea);
+                
+                card.innerHTML = `
+                    <div class="idea-title">${index + 1}. ${idea.title_vi}</div>
+                    <p><strong>Category:</strong> ${idea.category}</p>
+                    <p><strong>Hook:</strong> ${idea.hook_text}</p>
+                    ${idea.viral_tags && idea.viral_tags.length > 0 ? `
+                        <div class="viral-tags">
+                            ${idea.viral_tags.map(tag => `<span class="viral-tag">#${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function showScenarioDetail(idea) {
+            const detailDiv = document.getElementById('selected-idea');
+            detailDiv.style.display = 'block';
+            
+            let scenarioHTML = '';
+            
+            if (idea.scenario && typeof idea.scenario === 'object') {
+                // Check if it has hook1, body1, etc.
+                if (idea.scenario.hook1 || idea.scenario.body1 || idea.scenario.hook2 || idea.scenario.body2 || idea.scenario.conclusion) {
+                    scenarioHTML = `
+                        <div class="scenario-section">
+                            <h3>🎬 Kịch bản chi tiết (Format: hook1, body1, hook2, body2, conclusion)</h3>
+                            
+                            ${idea.scenario.hook1 ? `
+                                <div class="scenario-part hook1">
+                                    <div class="part-label" style="color: #ff6b35">🎬 Hook 1 (Mở đầu)</div>
+                                    <div>${idea.scenario.hook1}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${idea.scenario.body1 ? `
+                                <div class="scenario-part body1">
+                                    <div class="part-label" style="color: #2196f3">📹 Body 1 (Phần chính 1)</div>
+                                    <div>${idea.scenario.body1}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${idea.scenario.hook2 ? `
+                                <div class="scenario-part hook2">
+                                    <div class="part-label" style="color: #ff9800">🎯 Hook 2 (Điểm nhấn)</div>
+                                    <div>${idea.scenario.hook2}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${idea.scenario.body2 ? `
+                                <div class="scenario-part body2">
+                                    <div class="part-label" style="color: #03a9f4">🎥 Body 2 (Phần chính 2)</div>
+                                    <div>${idea.scenario.body2}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${idea.scenario.conclusion ? `
+                                <div class="scenario-part conclusion">
+                                    <div class="part-label" style="color: #4caf50">✨ Conclusion (Kết thúc)</div>
+                                    <div>${idea.scenario.conclusion}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    // Old format or other format
+                    scenarioHTML = `
+                        <div class="scenario-section">
+                            <h3>⚠️ Scenario format cũ:</h3>
+                            <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px;">${JSON.stringify(idea.scenario, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } else {
+                scenarioHTML = '<p style="color: red;">Không có scenario data</p>';
+            }
+            
+            detailDiv.innerHTML = `
+                <h2>${idea.title_vi}</h2>
+                <p><strong>ID:</strong> ${idea.id}</p>
+                <p><strong>Category:</strong> ${idea.category}</p>
+                <p><strong>Emotion:</strong> ${idea.emotion}</p>
+                <p><strong>Target Audience:</strong> ${idea.target_audience}</p>
+                <p><strong>Hook Text:</strong> ${idea.hook_text}</p>
+                
+                ${scenarioHTML}
+                
+                <h3>📸 Filming Tips:</h3>
+                <p>${idea.filming_tips}</p>
+                
+                <h3>💬 Caption Template:</h3>
+                <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px;">${idea.caption_template}</pre>
+                
+                <button class="btn" onclick="document.getElementById('selected-idea').style.display='none'">Đóng</button>
+            `;
+            
+            // Scroll to detail
+            detailDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function showRawData() {
+            const rawDiv = document.getElementById('raw-data');
+            const rawContent = document.getElementById('raw-content');
+            
+            if (rawDiv.style.display === 'none') {
+                rawDiv.style.display = 'block';
+                rawContent.textContent = JSON.stringify(allIdeas, null, 2);
+            } else {
+                rawDiv.style.display = 'none';
+            }
+        }
+        
+        // Load ideas on page load
+        window.onload = loadIdeas;
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Integrity Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-case {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            background: #000;
+        }
+        .star-rating {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .star {
+            font-size: 30px;
+            cursor: pointer;
+            color: #ddd;
+            transition: all 0.2s;
+        }
+        .star.active {
+            color: #ffd700;
+        }
+        .star.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .test-results {
+            background: #263238;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #e55a2b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Video Integrity Test</h1>
+
+    <!-- Test Case 1: 정상 비디오 -->
+    <div class="test-case">
+        <h2>Test 1: 정상 비디오 (무결성 체크 작동)</h2>
+        <video id="video1" controls>
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+        </video>
+        <div class="star-rating" id="rating1">
+            <span class="star disabled" data-rating="1">⭐</span>
+            <span class="star disabled" data-rating="2">⭐</span>
+            <span class="star disabled" data-rating="3">⭐</span>
+            <span class="star disabled" data-rating="4">⭐</span>
+            <span class="star disabled" data-rating="5">⭐</span>
+        </div>
+        <div id="status1" class="status info">비디오를 3초 이상 재생해주세요</div>
+        <div>재생 시간: <span id="playTime1">0</span>초</div>
+    </div>
+
+    <!-- Test Case 2: 잘못된 URL -->
+    <div class="test-case">
+        <h2>Test 2: 잘못된 URL (에러 처리)</h2>
+        <video id="video2" controls>
+            <source src="https://example.com/non-existent-video.mp4" type="video/mp4">
+        </video>
+        <div class="star-rating" id="rating2">
+            <span class="star disabled" data-rating="1">⭐</span>
+            <span class="star disabled" data-rating="2">⭐</span>
+            <span class="star disabled" data-rating="3">⭐</span>
+            <span class="star disabled" data-rating="4">⭐</span>
+            <span class="star disabled" data-rating="5">⭐</span>
+        </div>
+        <div id="status2" class="status info">비디오 로드 대기중...</div>
+    </div>
+
+    <!-- Test Case 3: 강제 평가 시도 -->
+    <div class="test-case">
+        <h2>Test 3: 강제 평가 시도 (해킹 방지)</h2>
+        <button onclick="forceRating()">강제로 평가 시도 (해킹)</button>
+        <div id="hackResult" class="status info">버튼을 클릭하여 테스트</div>
+    </div>
+
+    <!-- 테스트 결과 -->
+    <div class="test-case">
+        <h2>📊 테스트 결과</h2>
+        <div class="test-results" id="testResults">
+테스트 로그:
+- 페이지 로드됨...
+        </div>
+    </div>
+
+    <script>
+        // 전역 상태
+        let videoStates = {
+            video1: { loaded: false, playTime: 0, minWatchTime: 3 },
+            video2: { loaded: false, playTime: 0, minWatchTime: 3 }
+        };
+
+        // 로그 함수
+        function log(message) {
+            const results = document.getElementById('testResults');
+            results.innerHTML += `\n- ${new Date().toLocaleTimeString()}: ${message}`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // Test 1: 정상 비디오
+        const video1 = document.getElementById('video1');
+        const rating1Stars = document.querySelectorAll('#rating1 .star');
+        let playTimer1 = null;
+
+        video1.addEventListener('loadedmetadata', () => {
+            log('Video 1: 메타데이터 로드 완료');
+            videoStates.video1.loaded = true;
+        });
+
+        video1.addEventListener('play', () => {
+            log('Video 1: 재생 시작');
+            playTimer1 = setInterval(() => {
+                videoStates.video1.playTime++;
+                document.getElementById('playTime1').textContent = videoStates.video1.playTime;
+                
+                if (videoStates.video1.playTime >= videoStates.video1.minWatchTime) {
+                    // 평가 활성화
+                    rating1Stars.forEach(star => star.classList.remove('disabled'));
+                    document.getElementById('status1').className = 'status success';
+                    document.getElementById('status1').textContent = '✅ 평가 가능합니다!';
+                    log('Video 1: 평가 활성화됨 (3초 시청 완료)');
+                    clearInterval(playTimer1);
+                }
+            }, 1000);
+        });
+
+        video1.addEventListener('pause', () => {
+            if (playTimer1) clearInterval(playTimer1);
+            log('Video 1: 일시정지');
+        });
+
+        video1.addEventListener('error', (e) => {
+            log(`Video 1: 에러 발생 - ${e.message}`);
+            document.getElementById('status1').className = 'status error';
+            document.getElementById('status1').textContent = '❌ 비디오 로드 실패';
+        });
+
+        // Test 2: 잘못된 URL
+        const video2 = document.getElementById('video2');
+        
+        video2.addEventListener('error', (e) => {
+            log('Video 2: 비디오 로드 실패 (예상된 결과)');
+            document.getElementById('status2').className = 'status error';
+            document.getElementById('status2').textContent = '❌ 비디오를 로드할 수 없습니다';
+            
+            // 평가 버튼은 계속 비활성화 상태
+            const rating2Stars = document.querySelectorAll('#rating2 .star');
+            rating2Stars.forEach(star => {
+                star.style.pointerEvents = 'none';
+                star.title = '비디오 로드 실패로 평가 불가';
+            });
+        });
+
+        // 별점 클릭 이벤트
+        document.querySelectorAll('#rating1 .star').forEach(star => {
+            star.addEventListener('click', function() {
+                if (this.classList.contains('disabled')) {
+                    alert('❌ 비디오를 3초 이상 시청해야 평가할 수 있습니다!');
+                    log('Video 1: 평가 시도 거부됨 (시청 시간 부족)');
+                    return;
+                }
+                
+                const rating = this.dataset.rating;
+                log(`Video 1: ${rating}점 평가 완료`);
+                alert(`✅ ${rating}점 평가가 저장되었습니다!`);
+                
+                // 별점 하이라이트
+                document.querySelectorAll('#rating1 .star').forEach((s, i) => {
+                    if (i < rating) {
+                        s.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // Test 3: 강제 평가 시도
+        function forceRating() {
+            log('해킹 시도: 강제 평가 함수 호출');
+            
+            // 실제 video-review.js의 로직처럼 체크
+            if (!videoStates.video1.loaded || videoStates.video1.playTime < videoStates.video1.minWatchTime) {
+                document.getElementById('hackResult').className = 'status error';
+                document.getElementById('hackResult').textContent = '❌ 무결성 체크 실패! 평가가 거부되었습니다.';
+                log('해킹 시도 실패: 무결성 체크에 걸림');
+            } else {
+                document.getElementById('hackResult').className = 'status success';
+                document.getElementById('hackResult').textContent = '✅ 정상적인 평가 (비디오를 충분히 시청함)';
+                log('정상 평가: 무결성 체크 통과');
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', () => {
+            log('모든 테스트 준비 완료');
+        });
+    </script>
+</body>
+</html>

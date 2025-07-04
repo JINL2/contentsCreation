@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Script.js Custom Idea</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="app">
+        <header class="app-header">
+            <h1>Test Custom Idea Function</h1>
+        </header>
+        
+        <main class="main-content">
+            <div class="content-section active">
+                <div id="ideaCards" class="idea-cards-container">
+                    <!-- Ideas will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Custom Idea Modal will be inserted by script.js -->
+    
+    <script src="script.js"></script>
+    <script>
+        // Override loadContentIdeas to show only custom idea button
+        window.loadContentIdeas = async function() {
+            const container = document.getElementById('ideaCards');
+            container.innerHTML = '';
+            
+            // Add only the custom idea button
+            const customIdeaButton = document.createElement('div');
+            customIdeaButton.className = 'custom-idea-card';
+            customIdeaButton.innerHTML = `
+                <div class="custom-idea-content" onclick="showCustomIdeaModal()">
+                    <div class="custom-idea-icon">💡</div>
+                    <h3 class="custom-idea-title">Tạo ý tưởng của riêng bạn</h3>
+                    <p class="custom-idea-subtitle">Thể hiện sự sáng tạo với ý tưởng độc đáo</p>
+                    <div class="custom-idea-badge">+10 điểm</div>
+                </div>
+            `;
+            container.appendChild(customIdeaButton);
+        };
+        
+        // Call it when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.loadContentIdeas();
+        });
+    </script>
+</body>
+</html>

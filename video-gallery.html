@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Gallery | Contents Helper</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="video-gallery.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p class="loading-text">Đang tải...</p>
+        </div>
+    </div>
+
+    <!-- 성공/오류 토스트 -->
+    <div class="toast error-toast" id="errorToast" style="display: none;">
+        <div class="toast-content">
+            <span class="error-icon">⚠️</span>
+            <span class="error-message"></span>
+            <button class="toast-close" onclick="closeError()">×</button>
+        </div>
+    </div>
+
+    <div class="toast success-toast" id="successToast" style="display: none;">
+        <div class="toast-content">
+            <span class="success-icon">✅</span>
+            <span class="success-message"></span>
+        </div>
+    </div>
+
+    <!-- 헤더 -->
+    <header class="gallery-header">
+        <div class="header-container">
+            <div class="header-left">
+                <a href="index.html" class="back-button">
+                    <span class="back-icon">←</span>
+                    <span class="back-text">Quay lại</span>
+                </a>
+                <h1 class="header-title">🎬 Thư viện Video</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-stats-mini">
+                    <span class="stat-item">⭐ <span id="userPoints">0</span></span>
+                    <span class="stat-item">🏆 Cấp <span id="userLevel">1</span></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="gallery-main">
+        <!-- 필터 섹션 -->
+        <section class="filter-section">
+            <div class="filter-container">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" onclick="switchGalleryTab('all')">
+                        <span class="tab-icon">🎥</span>
+                        <span class="tab-text">Tất cả</span>
+                    </button>
+                    <button class="filter-tab" onclick="switchGalleryTab('my-videos')">
+                        <span class="tab-icon">👤</span>
+                        <span class="tab-text">Video của tôi</span>
+                    </button>
+                    <button class="filter-tab" onclick="switchGalleryTab('popular')">
+                        <span class="tab-icon">🔥</span>
+                        <span class="tab-text">Phổ biến</span>
+                    </button>
+                    <button class="filter-tab" onclick="switchGalleryTab('recent')">
+                        <span class="tab-icon">🆕</span>
+                        <span class="tab-text">Mới nhất</span>
+                    </button>
+                </div>
+
+                <div class="filter-options">
+                    <select id="categoryFilter" class="filter-select" onchange="applyFilters()">
+                        <option value="">Tất cả danh mục</option>
+                        <option value="일상">일상 (Cuộc sống)</option>
+                        <option value="음식">음식 (Ẩm thực)</option>
+                        <option value="패션">패션 (Thời trang)</option>
+                        <option value="뷰티">뷰티 (Làm đẹp)</option>
+                        <option value="여행">여행 (Du lịch)</option>
+                        <option value="정보">정보 (Thông tin)</option>
+                    </select>
+
+                    <select id="ratingFilter" class="filter-select" onchange="applyFilters()">
+                        <option value="">Tất cả đánh giá</option>
+                        <option value="5">⭐⭐⭐⭐⭐ 5 sao</option>
+                        <option value="4">⭐⭐⭐⭐ 4+ sao</option>
+                        <option value="3">⭐⭐⭐ 3+ sao</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- 통계 섹션 -->
+        <section class="stats-section">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">🎬</div>
+                    <div class="stat-value" id="totalVideos">0</div>
+                    <div class="stat-label">Tổng video</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="totalCreators">0</div>
+                    <div class="stat-label">Người sáng tạo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value" id="avgRating">0</div>
+                    <div class="stat-label">Đánh giá TB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💡</div>
+                    <div class="stat-value" id="customIdeas">0</div>
+                    <div class="stat-label">Ý tưởng tùy chỉnh</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 갤러리 그리드 -->
+        <section class="gallery-section">
+            <div class="gallery-container" id="galleryContainer">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Đang tải video...</p>
+                </div>
+            </div>
+
+            <!-- 더보기 버튼 -->
+            <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+                <button class="btn btn-secondary" onclick="loadMoreVideos()">
+                    Xem thêm video
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- 비디오 상세 모달 -->
+    <div class="modal-overlay" id="videoDetailModal" onclick="closeVideoDetail(event)">
+        <div class="modal-content video-detail-modal" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeVideoDetail()">×</button>
+            
+            <div class="video-detail-container">
+                <div class="video-player-section">
+                    <video id="modalVideo" controls></video>
+                </div>
+                
+                <div class="video-info-section">
+                    <div class="video-header">
+                        <h2 id="modalVideoTitle"></h2>
+                        <div class="video-meta">
+                            <span class="meta-item">
+                                <span class="meta-icon">👤</span>
+                                <span id="modalCreator"></span>
+                            </span>
+                            <span class="meta-item">
+                                <span class="meta-icon">📅</span>
+                                <span id="modalDate"></span>
+                            </span>
+                            <span class="meta-item">
+                                <span class="meta-icon">📁</span>
+                                <span id="modalCategory"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="video-description">
+                        <p id="modalDescription"></p>
+                    </div>
+
+                    <div class="video-tags" id="modalTags"></div>
+
+                    <div class="rating-section">
+                        <h3>Đánh giá video này</h3>
+                        <div class="rating-stars" id="ratingStars">
+                            <span class="star" data-rating="1">☆</span>
+                            <span class="star" data-rating="2">☆</span>
+                            <span class="star" data-rating="3">☆</span>
+                            <span class="star" data-rating="4">☆</span>
+                            <span class="star" data-rating="5">☆</span>
+                        </div>
+                        <div class="current-rating">
+                            <span>Đánh giá hiện tại: </span>
+                            <span id="currentRating">Chưa có</span>
+                        </div>
+                        <div class="total-ratings">
+                            <span id="totalRatings">0</span> đánh giá
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="shareVideo()">
+                            <span class="btn-icon">📤</span>
+                            Chia sẻ
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadVideo()">
+                            <span class="btn-icon">⬇️</span>
+                            Tải xuống
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="video-gallery.js"></script>
+</body>
+</html>

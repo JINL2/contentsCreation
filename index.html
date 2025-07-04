@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contents Helper - Tạo nội dung vui vẻ</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 헤더 -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="app-logo">
+                    <img src="../listen-customers/design_resources/logos/white/logo_full.png" alt="Cameraon" height="40">
+                    <h1 class="app-title">Contents Helper</h1>
+                </div>
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <span class="user-avatar">👤</span>
+                    <div class="user-details">
+                        <span class="user-name" id="displayUserName">User</span>
+                        <span class="user-department" id="displayUserDepartment">Department</span>
+                    </div>
+                </div>
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <span class="stat-icon">⭐</span>
+                        <span class="stat-value" id="userPoints">0</span>
+                        <span class="stat-label">Điểm</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon">🏆</span>
+                        <span class="stat-value" id="userLevel">1</span>
+                        <span class="stat-label">Cấp độ</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon">🔥</span>
+                        <span class="stat-value" id="userStreak">0</span>
+                        <span class="stat-label">Liên tiếp</span>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="team-performance-button" onclick="showStoreLeaderboardModal()">
+                        <span class="team-icon">🏆</span>
+                        <span class="team-text">Xếp hạng cửa hàng</span>
+                    </button>
+                    <a href="video-review.html" class="nav-button" onclick="navigateToReview(event)">
+                        <span class="nav-icon">💖</span>
+                        <span class="nav-text">Đánh giá video</span>
+                    </a>
+                    <button class="ranking-button" onclick="showRankingModal()">
+                        <span class="ranking-icon">🏅</span>
+                        <span class="ranking-text">Bảng xếp hạng</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 프로그레스 바 -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-steps">
+                <div class="step active" data-step="1">
+                    <span class="step-icon">💡</span>
+                    <span class="step-label">Chọn ý tưởng</span>
+                </div>
+                <div class="step" data-step="2">
+                    <span class="step-icon">📹</span>
+                    <span class="step-label">Quay video</span>
+                </div>
+                <div class="step" data-step="3">
+                    <span class="step-icon">⬆️</span>
+                    <span class="step-label">Tải lên</span>
+                </div>
+                <div class="step" data-step="4">
+                    <span class="step-icon">✅</span>
+                    <span class="step-label">Hoàn thành</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <!-- Step 1: 아이디어 선택 -->
+            <section id="ideaSelection" class="content-section active">
+                <h2 class="section-title">Hôm nay chúng ta sẽ tạo nội dung gì? 🎯</h2>
+                <p class="section-subtitle">Hãy chọn 1 trong 5 ý tưởng dưới đây!</p>
+                
+                <!-- 점수 가이드 버튼 -->
+                <div class="points-guide-button-container">
+                    <button class="points-guide-button" onclick="showPointsModal()">
+                        <span class="guide-icon">🌟</span>
+                        <span class="guide-text">Hướng dẫn nhận điểm</span>
+                    </button>
+                </div>
+                
+                <div class="idea-cards" id="ideaCards">
+                    <!-- 카드는 JavaScript로 동적 생성 -->
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Đang tải ý tưởng...</p>
+                    </div>
+                </div>
+
+                <button class="refresh-button" id="refreshIdeas">
+                    <span class="refresh-icon">🔄</span>
+                    Xem ý tưởng khác
+                </button>
+                
+                <!-- 사용자 통계 상세 -->
+                <div class="user-detailed-stats" id="userDetailedStats" style="display: none;">
+                    <h4>📊 Thống kê của bạn</h4>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-icon-large">🎥</span>
+                            <span class="stat-number" id="totalUploads">0</span>
+                            <span class="stat-label">Tổng số video</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon-large">📅</span>
+                            <span class="stat-number" id="todayUploads">0</span>
+                            <span class="stat-label">Video hôm nay</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon-large">⭐</span>
+                            <span class="stat-number" id="totalPointsDisplay">0</span>
+                            <span class="stat-label">Tổng điểm</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon-large">🏆</span>
+                            <span class="stat-number" id="currentLevelDisplay">1</span>
+                            <span class="stat-label">Cấp độ hiện tại</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: 시나리오 상세 -->
+            <section id="scenarioDetail" class="content-section">
+                <h2 class="section-title">Ý tưởng đã chọn 📝</h2>
+                
+                <div class="scenario-card" id="scenarioCard">
+                    <!-- 동적으로 생성 -->
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="backToIdeas()">
+                        ← Chọn lại
+                    </button>
+                    <button class="btn btn-primary" onclick="startRecording()">
+                        Bắt đầu quay →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 3: 영상 업로드 -->
+            <section id="videoUpload" class="content-section">
+                <h2 class="section-title">Tải video lên 📹</h2>
+                
+                <div class="upload-container">
+                    <input type="file" id="videoFile" accept="video/*" hidden>
+                    <label for="videoFile" class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <p class="upload-text">Nhấn để chọn video</p>
+                        <p class="upload-hint">Hoặc kéo thả file vào đây</p>
+                    </label>
+                    
+                    <div class="video-preview" id="videoPreview" style="display: none;">
+                        <video controls></video>
+                        <div class="video-info">
+                            <p class="file-name"></p>
+                            <p class="file-size"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metadata-form" id="metadataForm" style="display: none;">
+                    <h3>Nhập thông tin thêm</h3>
+                    <div class="form-group">
+                        <label for="videoTitle">Tiêu đề video</label>
+                        <input type="text" id="videoTitle" placeholder="Nhập tiêu đề video">
+                    </div>
+                    <div class="form-group">
+                        <label for="videoDescription">Mô tả (tùy chọn)</label>
+                        <textarea id="videoDescription" rows="3" placeholder="Nhập mô tả về video"></textarea>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="backToScenario()">
+                        ← Quay lại
+                    </button>
+                    <button class="btn btn-primary" id="uploadButton" disabled>
+                        Tải lên →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 4: 완료 -->
+            <section id="completion" class="content-section">
+                <div class="completion-container">
+                    <div class="celebration">
+                        <h2 class="celebration-title">🎉 Chúc mừng! 🎉</h2>
+                        <p class="celebration-message">Bạn đã hoàn thành tạo nội dung!</p>
+                    </div>
+
+                    <div class="reward-container">
+                        <div class="points-earned">
+                            <span class="points-icon">⭐</span>
+                            <span class="points-value">+<span id="earnedPoints">100</span></span>
+                            <span class="points-label">Điểm nhận được!</span>
+                        </div>
+                        
+                        <div class="achievements" id="newAchievements">
+                            <!-- 새로운 업적이 있으면 표시 -->
+                        </div>
+                    </div>
+
+                    <div class="next-actions">
+                        <button class="btn btn-primary" onclick="createAnother()">
+                            Tạo nội dung mới
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewLeaderboard()">
+                            Xem bảng xếp hạng
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 로딩 오버레이 -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner-large"></div>
+                <p class="loading-text">Đang xử lý...</p>
+            </div>
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div class="error-toast" id="errorToast" style="display: none;">
+            <span class="error-icon">⚠️</span>
+            <span class="error-message"></span>
+            <button class="close-toast" onclick="closeError()">×</button>
+        </div>
+
+        <!-- 성공 메시지 -->
+        <div class="success-toast" id="successToast" style="display: none;">
+            <span class="success-icon">✅</span>
+            <span class="success-message"></span>
+        </div>
+    </div>
+
+    <!-- 포인트 가이드 모달 -->
+    <div class="modal-overlay" id="pointsModal" onclick="closePointsModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>🌟 Hướng dẫn nhận điểm</h3>
+                <button class="modal-close" onclick="closePointsModal()">×</button>
+            </div>
+            <div class="modal-body" id="pointsModalBody">
+                <!-- 동적으로 생성될 내용 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 랭킹 모달 -->
+    <div class="modal-overlay" id="rankingModal" onclick="closeRankingModal(event)">
+        <div class="modal-content ranking-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>🏅 Bảng xếp hạng</h3>
+                <button class="modal-close" onclick="closeRankingModal()">×</button>
+            </div>
+            <div class="ranking-tabs">
+                <button class="ranking-tab active" onclick="switchRankingTab('company')">
+                    <span class="tab-icon">🏢</span>
+                    <span class="tab-text">Toàn công ty</span>
+                </button>
+                <button class="ranking-tab" onclick="switchRankingTab('store')">
+                    <span class="tab-icon">🏪</span>
+                    <span class="tab-text">Cửa hàng</span>
+                </button>
+            </div>
+            <div class="ranking-tab-content">
+                <!-- 회사 전체 랭킹 -->
+                <div id="company-ranking" class="ranking-panel active">
+                    <div class="ranking-header">
+                        <p class="ranking-subtitle">Xếp hạng theo tổng điểm trong toàn công ty</p>
+                    </div>
+                    <div class="ranking-list" id="companyRankingList">
+                        <div class="ranking-loading">
+                            <div class="spinner"></div>
+                            <p>Đang tải bảng xếp hạng...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 가게별 랭킹 -->
+                <div id="store-ranking" class="ranking-panel">
+                    <div class="ranking-header">
+                        <p class="ranking-subtitle">Xếp hạng trong cửa hàng của bạn</p>
+                    </div>
+                    <div class="ranking-list" id="storeRankingList">
+                        <div class="ranking-loading">
+                            <div class="spinner"></div>
+                            <p>Đang tải bảng xếp hạng...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js?v=5"></script>
+    <script src="script.js?v=5"></script>
+    <script src="store-leaderboard.js?v=2"></script>
+</body>
+</html>

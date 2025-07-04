@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Script.js</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Debug Script.js Functions</h1>
+    <div id="result"></div>
+    
+    <script>
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        
+        // Simulate currentState
+        let currentState = {
+            userId: '0d2e61ad-e230-454e-8b90-efbe1c1a9268',
+            userName: 'Jin',
+            companyId: 'ebd66ba7-fde7-4332-b6b5-0d8a7f615497',
+            storeId: '16f4c231-185a-4564-b473-bad1e9b305e8'
+        };
+        
+        // Simulate GAME_CONFIG
+        let GAME_CONFIG = {
+            points: {
+                select_idea: 10,
+                upload_video: 50,
+                add_metadata: 20,
+                complete: 20
+            }
+        };
+        
+        async function debugLoadIdeas() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // 1. Check if there are any ideas
+                const { data: allIdeas, error: error1 } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .limit(10);
+                
+                if (error1) {
+                    resultDiv.innerHTML += `<p style="color: red;">Error getting all ideas: ${error1.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">Total ideas in DB: ${allIdeas.length}</p>`;
+                }
+                
+                // 2. Check ideas with is_upload=false
+                const { data: availableIdeas, error: error2 } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .eq('is_upload', false);
+                
+                if (error2) {
+                    resultDiv.innerHTML += `<p style="color: red;">Error getting available ideas: ${error2.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">Available ideas (is_upload=false): ${availableIdeas.length}</p>`;
+                    
+                    // Show first 3 ideas
+                    if (availableIdeas.length > 0) {
+                        resultDiv.innerHTML += '<h3>First 3 available ideas:</h3>';
+                        availableIdeas.slice(0, 3).forEach((idea, index) => {
+                            resultDiv.innerHTML += `<p>${index + 1}. ${idea.title_vi} (ID: ${idea.id}, is_upload: ${idea.is_upload})</p>`;
+                        });
+                    }
+                }
+                
+                // 3. Check chosen ideas
+                const { data: choosenIdeas, error: error3 } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .eq('is_choosen', true)
+                    .eq('is_upload', false)
+                    .limit(1);
+                
+                if (error3) {
+                    resultDiv.innerHTML += `<p style="color: red;">Error getting chosen ideas: ${error3.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: blue;">Chosen ideas (is_choosen=true, is_upload=false): ${choosenIdeas.length}</p>`;
+                }
+                
+                // 4. Test loadGameConfig
+                resultDiv.innerHTML += '<h3>Testing loadGameConfig:</h3>';
+                try {
+                    const { data: pointsData, error: pointsError } = await supabaseClient
+                        .from('points_system')
+                        .select('*')
+                        .eq('is_active', true)
+                        .order('points', { ascending: false });
+                    
+                    if (pointsError) {
+                        resultDiv.innerHTML += `<p style="color: red;">Error loading points: ${pointsError.message}</p>`;
+                    } else {
+                        resultDiv.innerHTML += `<p style="color: green;">Points system loaded: ${pointsData.length} items</p>`;
+                    }
+                } catch (err) {
+                    resultDiv.innerHTML += `<p style="color: red;">Exception in loadGameConfig: ${err.message}</p>`;
+                }
+                
+            } catch (err) {
+                resultDiv.innerHTML += `<p style="color: red;">Unexpected error: ${err.message}</p>`;
+            }
+        }
+        
+        debugLoadIdeas();
+    </script>
+</body>
+</html>

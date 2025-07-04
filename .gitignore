@@ -1,0 +1,26 @@
+# Video files
+*.mp4
+*.MP4
+*.avi
+*.mov
+
+# macOS
+.DS_Store
+
+# Backup folder videos
+backup/*.mp4
+backup/*.MP4
+
+# Config files with sensitive data (if needed)
+# config.js
+
+# Database files
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

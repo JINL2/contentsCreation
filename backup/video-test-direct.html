@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Direct Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        video {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+        .info {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background: #ffeeee;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            padding: 10px;
+            background: #eeffee;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background: #ff6b35;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #ff8555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>비디오 직접 테스트</h1>
+        
+        <div id="info" class="info">
+            <h3>테스트 정보</h3>
+            <p><strong>URL 파라미터:</strong></p>
+            <ul id="urlParams"></ul>
+        </div>
+        
+        <div id="testResults"></div>
+        
+        <button onclick="testSupabase()">1. Supabase 연결 테스트</button>
+        <button onclick="testVideoLoad()">2. 비디오 로드 테스트</button>
+        <button onclick="testDirectVideo()">3. 직접 비디오 재생 테스트</button>
+        
+        <div id="videoContainer" class="video-container" style="display:none;">
+            <h3>비디오</h3>
+            <video id="testVideo" controls autoplay muted></video>
+            <div id="videoInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터 표시
+        const params = new URLSearchParams(window.location.search);
+        const paramsList = document.getElementById('urlParams');
+        for (const [key, value] of params) {
+            const li = document.createElement('li');
+            li.textContent = `${key}: ${value}`;
+            paramsList.appendChild(li);
+        }
+        
+        // Supabase 설정
+        const SUPABASE_CONFIG = {
+            url: 'https://yenfccoefczqxckbizqa.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDkyNzksImV4cCI6MjA2MTUyNTI3OX0.U1iQUOaNPSrEHf1w_ePqgYzJiRO6Bi48E2Np2hY0nCQ'
+        };
+        
+        let supabaseClient;
+        
+        function addResult(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = isError ? 'error' : 'success';
+            div.textContent = message;
+            document.getElementById('testResults').appendChild(div);
+        }
+        
+        async function testSupabase() {
+            try {
+                const { createClient } = supabase;
+                supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                addResult('✅ Supabase 클라이언트 생성 성공');
+                
+                // 간단한 쿼리 테스트
+                const { data, error } = await supabaseClient
+                    .from('content_uploads')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                addResult('✅ Supabase 연결 성공');
+            } catch (error) {
+                addResult(`❌ Supabase 에러: ${error.message}`, true);
+                console.error(error);
+            }
+        }
+        
+        async function testVideoLoad() {
+            if (!supabaseClient) {
+                addResult('❌ 먼저 Supabase 연결 테스트를 실행하세요', true);
+                return;
+            }
+            
+            const companyId = params.get('company_id');
+            if (!companyId) {
+                addResult('❌ company_id가 URL에 없습니다', true);
+                return;
+            }
+            
+            try {
+                const { data: videos, error } = await supabaseClient
+                    .from('content_uploads')
+                    .select('*')
+                    .eq('status', 'uploaded')
+                    .eq('company_id', companyId)
+                    .limit(5);
+                
+                if (error) throw error;
+                
+                addResult(`✅ ${videos.length}개의 비디오를 찾았습니다`);
+                
+                videos.forEach((video, index) => {
+                    addResult(`  📹 ${index + 1}. ${video.title} - ${video.video_url}`);
+                });
+                
+                if (videos.length > 0) {
+                    // 첫 번째 비디오 재생
+                    const firstVideo = videos[0];
+                    document.getElementById('videoContainer').style.display = 'block';
+                    document.getElementById('testVideo').src = firstVideo.video_url;
+                    document.getElementById('videoInfo').innerHTML = `
+                        <p><strong>제목:</strong> ${firstVideo.title}</p>
+                        <p><strong>URL:</strong> ${firstVideo.video_url}</p>
+                        <p><strong>ID:</strong> ${firstVideo.id}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                addResult(`❌ 비디오 로드 에러: ${error.message}`, true);
+                console.error(error);
+            }
+        }
+        
+        function testDirectVideo() {
+            // 알려진 비디오 URL로 직접 테스트
+            const testUrl = 'https://yenfccoefczqxckbizqa.supabase.co/storage/v1/object/public/contents-videos/1751200665236_test-video.mp4';
+            
+            document.getElementById('videoContainer').style.display = 'block';
+            const video = document.getElementById('testVideo');
+            video.src = testUrl;
+            
+            video.onloadedmetadata = () => {
+                addResult('✅ 비디오 메타데이터 로드 성공');
+            };
+            
+            video.oncanplay = () => {
+                addResult('✅ 비디오 재생 준비 완료');
+            };
+            
+            video.onerror = (e) => {
+                addResult(`❌ 비디오 로드 에러: ${e.message || '알 수 없는 에러'}`, true);
+            };
+            
+            document.getElementById('videoInfo').innerHTML = `
+                <p><strong>테스트 URL:</strong> ${testUrl}</p>
+            `;
+        }
+        
+        // 페이지 로드 시 자동으로 Supabase 연결 테스트
+        window.onload = () => {
+            testSupabase();
+        };
+    </script>
+</body>
+</html>

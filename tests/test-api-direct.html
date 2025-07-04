@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct API Test - Supabase Storage</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #E55100;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Direct API Test - Supabase Storage</h1>
+        
+        <div class="test-section">
+            <h2>1. Storage Bucket 테스트</h2>
+            <button onclick="testBuckets()">📦 Bucket 목록 확인</button>
+            <button onclick="createBucket()">➕ contents-videos Bucket 생성</button>
+            <div id="bucket-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. 테스트 파일 업로드</h2>
+            <button onclick="testUpload()">🚀 테스트 텍스트 파일 업로드</button>
+            <button onclick="testImageUpload()">🖼️ 테스트 이미지 업로드</button>
+            <div id="upload-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. 업로드된 파일 확인</h2>
+            <button onclick="listFiles()">📋 파일 목록 확인</button>
+            <button onclick="checkDatabase()">🗄️ DB 레코드 확인</button>
+            <div id="list-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. 정리</h2>
+            <button onclick="deleteTestFiles()">🗑️ 테스트 파일 삭제</button>
+            <div id="cleanup-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const supabaseUrl = 'https://yenfccoefczqxckbizqa.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDkyNzksImV4cCI6MjA2MTUyNTI3OX0.U1iQUOaNPSrEHf1w_ePqgYzJiRO6Bi48E2Np2hY0nCQ';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // 결과 표시 함수
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = message;
+        }
+
+        // 1. Bucket 목록 확인
+        async function testBuckets() {
+            try {
+                const { data, error } = await supabase.storage.listBuckets();
+                
+                if (error) throw error;
+                
+                const bucketNames = data.map(b => b.name).join(', ');
+                showResult('bucket-result', `현재 Buckets: ${bucketNames || '없음'}`);
+                console.log('Buckets:', data);
+            } catch (error) {
+                showResult('bucket-result', `에러: ${error.message}`, false);
+            }
+        }
+
+        // 2. Bucket 생성
+        async function createBucket() {
+            try {
+                const { data, error } = await supabase.storage.createBucket('contents-videos', {
+                    public: true,
+                    fileSizeLimit: '50MB'
+                });
+                
+                if (error) throw error;
+                
+                showResult('bucket-result', 'contents-videos bucket 생성 성공!');
+                console.log('Bucket created:', data);
+            } catch (error) {
+                if (error.message.includes('already exists')) {
+                    showResult('bucket-result', 'contents-videos bucket이 이미 존재합니다.');
+                } else {
+                    showResult('bucket-result', `에러: ${error.message}`, false);
+                }
+            }
+        }
+
+        // 3. 테스트 업로드 - 텍스트 파일
+        async function testUpload() {
+            try {
+                // 테스트 파일 생성
+                const content = 'This is a test video file content';
+                const file = new Blob([content], { type: 'video/mp4' });
+                const fileName = `test_${Date.now()}.mp4`;
+                const filePath = `videos/${fileName}`;
+
+                // 업로드
+                const { data, error } = await supabase.storage
+                    .from('contents-videos')
+                    .upload(filePath, file);
+
+                if (error) throw error;
+
+                // Public URL 가져오기
+                const { data: { publicUrl } } = supabase.storage
+                    .from('contents-videos')
+                    .getPublicUrl(filePath);
+
+                showResult('upload-result', `업로드 성공!\nFile: ${fileName}\nURL: ${publicUrl}`);
+                console.log('Upload success:', data, publicUrl);
+
+                // DB에 저장
+                await saveToDatabase(fileName, publicUrl);
+
+            } catch (error) {
+                showResult('upload-result', `업로드 실패: ${error.message}`, false);
+            }
+        }
+
+        // 4. 테스트 이미지 업로드
+        async function testImageUpload() {
+            try {
+                // 1x1 픽셀 빨간색 이미지 (base64)
+                const base64Data = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                const file = new Blob([byteArray], { type: 'image/png' });
+                const fileName = `test_image_${Date.now()}.png`;
+                const filePath = `videos/${fileName}`;
+
+                // 업로드
+                const { data, error } = await supabase.storage
+                    .from('contents-videos')
+                    .upload(filePath, file);
+
+                if (error) throw error;
+
+                // Public URL 가져오기
+                const { data: { publicUrl } } = supabase.storage
+                    .from('contents-videos')
+                    .getPublicUrl(filePath);
+
+                showResult('upload-result', `이미지 업로드 성공!\nFile: ${fileName}\nURL: ${publicUrl}`);
+                console.log('Image upload success:', data, publicUrl);
+
+            } catch (error) {
+                showResult('upload-result', `이미지 업로드 실패: ${error.message}`, false);
+            }
+        }
+
+        // 5. DB에 저장
+        async function saveToDatabase(fileName, publicUrl) {
+            try {
+                const { data, error } = await supabase
+                    .from('content_uploads')
+                    .insert({
+                        content_id: 'test-content-001',
+                        user_id: '0d2e61ad-e230-454e-8b90-efbe1c1a9268',
+                        upload_url: publicUrl,
+                        file_name: fileName,
+                        upload_time: new Date().toISOString(),
+                        status: 'uploaded',
+                        metadata: {
+                            source: 'api_test',
+                            test: true
+                        }
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                console.log('DB save success:', data);
+
+            } catch (error) {
+                console.error('DB save error:', error);
+            }
+        }
+
+        // 6. 파일 목록 확인
+        async function listFiles() {
+            try {
+                const { data, error } = await supabase.storage
+                    .from('contents-videos')
+                    .list('videos', {
+                        limit: 100,
+                        offset: 0
+                    });
+
+                if (error) throw error;
+
+                const fileList = data.map(f => `- ${f.name} (${(f.metadata?.size || 0) / 1024}KB)`).join('\n');
+                showResult('list-result', `파일 목록 (${data.length}개):\n${fileList || '없음'}`);
+                console.log('Files:', data);
+
+            } catch (error) {
+                showResult('list-result', `목록 확인 실패: ${error.message}`, false);
+            }
+        }
+
+        // 7. DB 확인
+        async function checkDatabase() {
+            try {
+                const { data, error } = await supabase
+                    .from('content_uploads')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+
+                const records = data.map(r => `- ${r.file_name} (${new Date(r.created_at).toLocaleString()})`).join('\n');
+                showResult('list-result', `최근 업로드 (${data.length}개):\n${records || '없음'}`);
+                console.log('DB records:', data);
+
+            } catch (error) {
+                showResult('list-result', `DB 확인 실패: ${error.message}`, false);
+            }
+        }
+
+        // 8. 테스트 파일 삭제
+        async function deleteTestFiles() {
+            try {
+                const { data: files } = await supabase.storage
+                    .from('contents-videos')
+                    .list('videos');
+
+                const testFiles = files.filter(f => f.name.startsWith('test_'));
+                
+                for (const file of testFiles) {
+                    await supabase.storage
+                        .from('contents-videos')
+                        .remove([`videos/${file.name}`]);
+                }
+
+                showResult('cleanup-result', `${testFiles.length}개의 테스트 파일 삭제 완료`);
+
+            } catch (error) {
+                showResult('cleanup-result', `삭제 실패: ${error.message}`, false);
+            }
+        }
+
+        // 페이지 로드시 bucket 확인
+        window.onload = function() {
+            testBuckets();
+        };
+    </script>
+</body>
+</html>

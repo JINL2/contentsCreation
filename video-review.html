@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đánh giá Video - Contents Helper</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="video-review.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="review-container">
+        <!-- 헤더 -->
+        <header class="review-header">
+            <button class="back-button" onclick="goBack()">
+                <span class="back-icon">←</span>
+            </button>
+            <div class="review-progress">
+                <div class="progress-info">
+                    <span class="progress-text">Hôm nay: <span id="todayReviewed">0</span>/<span id="todayTarget">20</span></span>
+                    <span class="streak-info">🔥 <span id="reviewStreak">0</span></span>
+                </div>
+                <div class="progress-bar-slim">
+                    <div class="progress-fill-slim" id="reviewProgressFill"></div>
+                </div>
+            </div>
+            <div class="points-earned">
+                <span class="points-icon">⭐</span>
+                <span class="points-value">+<span id="earnedPoints">0</span></span>
+            </div>
+        </header>
+
+        <!-- 비디오 뷰어 -->
+        <div class="video-viewer" id="videoViewer">
+            <!-- 로딩 상태 -->
+            <div class="loading-state" id="loadingState">
+                <div class="spinner-large"></div>
+                <p>Đang tải video...</p>
+            </div>
+
+            <!-- 비디오 플레이어 -->
+            <div class="video-player" id="videoPlayer" style="display: none;">
+                <video id="reviewVideo" autoplay playsinline loop crossorigin="anonymous" preload="auto" controls></video>
+                
+                <!-- 비디오 정보 제거 - 영상만 표시 -->
+            </div>
+
+            <!-- 빈 상태 -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">🎬</div>
+                <h3>Không còn video để đánh giá</h3>
+                <p>Bạn đã đánh giá tất cả video của công ty!</p>
+                <button class="btn btn-primary" onclick="goBack()">Quay lại trang chính</button>
+            </div>
+        </div>
+
+        <!-- 하단 컨트롤 영역 -->
+        <div class="bottom-controls" id="bottomControls">
+            <div class="controls-content">
+                <!-- 별점 평가 -->
+                <div class="star-rating-container" id="starRatingContainer">
+                    <div class="star-rating" id="starRating">
+                        <span class="star" data-rating="1">⭐</span>
+                        <span class="star" data-rating="2">⭐</span>
+                        <span class="star" data-rating="3">⭐</span>
+                        <span class="star" data-rating="4">⭐</span>
+                        <span class="star" data-rating="5">⭐</span>
+                    </div>
+                    <p class="rating-hint" id="ratingHint">Xem ít nhất 3 giây để đánh giá</p>
+                </div>
+                
+                <!-- 이미 평가된 메시지 (숨김) -->
+                <div class="already-reviewed-container" id="alreadyReviewedContainer" style="display: none;">
+                    <p class="already-reviewed-message">Bạn đã đánh giá video này</p>
+                </div>
+                
+                <!-- 버튼 그룹 -->
+                <div class="control-buttons">
+                    <button class="control-btn home-btn" onclick="goBack()" title="Về trang chủ">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/>
+                        </svg>
+                        <span>Trang chủ</span>
+                    </button>
+                    
+                    <button class="control-btn next-btn" id="nextVideoBtn" onclick="nextVideo()" title="Video tiếp theo">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" fill="currentColor"/>
+                        </svg>
+                        <span>Tiếp theo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 다음 비디오 플로팅 버튼 -->
+    <button class="floating-next-btn" id="floatingNextBtn" onclick="nextVideo()" title="Video tiếp theo">
+        <svg viewBox="0 0 24 24" width="30" height="30">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" fill="white"/>
+        </svg>
+    </button>
+
+    <!-- 포인트 획듍 애니메이션 -->
+    <div class="points-animation" id="pointsAnimation">
+        <span class="animated-points">+<span id="animatedPointsValue">0</span></span>
+    </div>
+
+    <!-- 연속 평가 애니메이션 -->
+    <div class="streak-animation" id="streakAnimation">
+        <div class="streak-fire">🔥</div>
+        <div class="streak-text">Đánh giá liên tiếp!</div>
+    </div>
+
+    <!-- 성공/오류 토스트 -->
+    <div class="toast success-toast" id="successToast">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message"></span>
+    </div>
+
+    <div class="toast error-toast" id="errorToast">
+        <span class="toast-icon">⚠️</span>
+        <span class="toast-message"></span>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="video-review-v3-fixed.js"></script>
+    <script>
+        // 평가된 비디오 처리를 위한 글로벌 함수
+        window.showReviewedVideoUI = function() {
+            const starContainer = document.getElementById('starRatingContainer');
+            const reviewedContainer = document.getElementById('alreadyReviewedContainer');
+            
+            if (starContainer) starContainer.style.display = 'none';
+            if (reviewedContainer) reviewedContainer.style.display = 'block';
+        };
+        
+        // 미평가 비디오 UI 복원
+        window.showUnreviewedVideoUI = function() {
+            const starContainer = document.getElementById('starRatingContainer');
+            const reviewedContainer = document.getElementById('alreadyReviewedContainer');
+            
+            if (starContainer) starContainer.style.display = 'block';
+            if (reviewedContainer) reviewedContainer.style.display = 'none';
+            
+            // 별점 이벤트 재설정
+            if (typeof setupStarRating === 'function') {
+                setupStarRating();
+            }
+        };
+    </script>
+</body>
+</html>

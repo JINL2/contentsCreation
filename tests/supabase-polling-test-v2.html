@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Polling API Test V2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .status.running {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status.stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .test-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .warning-btn {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .api-endpoint {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .api-endpoint h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .api-endpoint code {
+            background-color: #e9ecef;
+            padding: 10px;
+            display: block;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 3px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .log-entry.error {
+            border-left-color: #dc3545;
+        }
+        
+        .log-entry.success {
+            border-left-color: #28a745;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ffc107;
+        }
+        
+        .log-time {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .data-display {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .data-display pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .config-section {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .config-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .config-section input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .error-tips {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .error-tips h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Supabase Polling & API Test V2</h1>
+        
+        <div class="error-tips" id="errorTips">
+            <h4>⚠️ Troubleshooting Tips:</h4>
+            <ul>
+                <li>Make sure XAMPP is running</li>
+                <li>Check if the URL is accessible: <a href="http://localhost/contents_helper_website/" target="_blank">http://localhost/contents_helper_website/</a></li>
+                <li>Open browser console (F12) to see detailed errors</li>
+                <li>Try using file:// protocol if localhost fails</li>
+            </ul>
+        </div>
+        
+        <div class="config-section">
+            <h3>⚙️ Configuration</h3>
+            <label for="supabaseUrl">Supabase URL:</label>
+            <input type="text" id="supabaseUrl" value="https://yenfccoefczqxckbizqa.supabase.co" readonly>
+            
+            <label for="supabaseKey">Supabase Anon Key:</label>
+            <input type="text" id="supabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzAyODgsImV4cCI6MjA1MDU0NjI4OH0.VdFrYaGaJfpzbjbkMBpvgJb5ypEArGIy5CeBJLYg5OE" readonly>
+            
+            <label for="pollInterval">Polling Interval (seconds):</label>
+            <input type="number" id="pollInterval" value="10" min="1" max="60">
+        </div>
+        
+        <div class="api-endpoint">
+            <h3>📡 API Endpoint (Local Server)</h3>
+            <code>http://localhost/contents_helper_website/api/receive-idea.php</code>
+            <p>Method: POST | Content-Type: application/json</p>
+        </div>
+        
+        <div class="status stopped" id="status">
+            🔴 Polling Stopped
+        </div>
+        
+        <div class="controls">
+            <button class="start-btn" onclick="startPolling()">▶️ Start Polling</button>
+            <button class="stop-btn" onclick="stopPolling()">⏹️ Stop Polling</button>
+            <button class="test-btn" onclick="testCreateIdea()">🧪 Create Test Idea</button>
+            <button class="test-btn" onclick="manualCheck()">🔍 Manual Check</button>
+            <button class="warning-btn" onclick="testConnection()">🔌 Test Connection</button>
+            <button class="warning-btn" onclick="clearLogs()">🗑️ Clear Logs</button>
+        </div>
+        
+        <div class="data-display" id="dataDisplay">
+            <h3>📊 Last Retrieved Data:</h3>
+            <pre id="dataContent"></pre>
+        </div>
+        
+        <div class="log-container">
+            <h3>📋 Activity Log:</h3>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = document.getElementById('supabaseUrl').value;
+        const SUPABASE_KEY = document.getElementById('supabaseKey').value;
+        
+        let pollingInterval = null;
+        let lastCheckedTime = null;
+        let processedIds = new Set(); // Track processed ideas to avoid duplicates
+        
+        // Initialize last checked time
+        function initializeLastCheckedTime() {
+            // Start checking from 1 hour ago to catch recent ideas
+            const oneHourAgo = new Date();
+            oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+            lastCheckedTime = oneHourAgo.toISOString();
+        }
+        
+        // Log function
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            
+            const time = new Date().toLocaleTimeString('vi-VN');
+            logEntry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <div>${message}</div>
+            `;
+            
+            logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+            
+            // Keep only last 50 logs
+            while (logsContainer.children.length > 50) {
+                logsContainer.removeChild(logsContainer.lastChild);
+            }
+            
+            // Show error tips if there are errors
+            if (type === 'error') {
+                document.getElementById('errorTips').style.display = 'block';
+            }
+        }
+        
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            addLog('🗑️ Logs cleared');
+        }
+        
+        // Test connection to Supabase
+        async function testConnection() {
+            try {
+                addLog('🔌 Testing Supabase connection...');
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/contents_idea?select=count&limit=1`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addLog(`✅ Supabase connection successful!`, 'success');
+                
+                // Test local API
+                testLocalAPI();
+                
+            } catch (error) {
+                addLog(`❌ Supabase connection failed: ${error.message}`, 'error');
+                console.error('Connection error:', error);
+            }
+        }
+        
+        // Test local API endpoint
+        async function testLocalAPI() {
+            try {
+                addLog('🔌 Testing local API endpoint...');
+                
+                const testData = {
+                    test: true,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch('http://localhost/contents_helper_website/api/receive-idea.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                addLog(`✅ Local API test successful: ${JSON.stringify(result)}`, 'success');
+                
+            } catch (error) {
+                addLog(`⚠️ Local API not accessible: ${error.message}`, 'warning');
+                addLog('💡 Create the API file as shown in instructions', 'warning');
+            }
+        }
+        
+        // Check for new ideas with is_auto_created = false
+        async function checkForNewIdeas() {
+            try {
+                addLog('🔍 Checking for new ideas...');
+                
+                // Build query
+                let query = `${SUPABASE_URL}/rest/v1/contents_idea?is_auto_created=eq.false`;
+                
+                // Add time filter if we have lastCheckedTime
+                if (lastCheckedTime) {
+                    query += `&created_at=gte.${lastCheckedTime}`;
+                }
+                
+                query += `&select=*&order=created_at.desc`;
+                
+                const response = await fetch(query, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Filter out already processed ideas
+                const newIdeas = data.filter(idea => !processedIds.has(idea.id));
+                
+                if (newIdeas.length > 0) {
+                    addLog(`✅ Found ${newIdeas.length} new idea(s)!`, 'success');
+                    
+                    // Process each idea
+                    for (const idea of newIdeas) {
+                        await sendToLocalAPI(idea);
+                        processedIds.add(idea.id); // Mark as processed
+                    }
+                    
+                    // Update last checked time to the most recent idea's created_at
+                    if (data.length > 0) {
+                        lastCheckedTime = data[0].created_at;
+                    }
+                } else {
+                    addLog('No new ideas found');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error checking ideas: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Send data to local API endpoint
+        async function sendToLocalAPI(ideaData) {
+            try {
+                const apiUrl = 'http://localhost/contents_helper_website/api/receive-idea.php';
+                
+                addLog(`📤 Sending idea #${ideaData.id} to local API...`);
+                
+                // Display the data being sent
+                document.getElementById('dataDisplay').style.display = 'block';
+                document.getElementById('dataContent').textContent = JSON.stringify(ideaData, null, 2);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(ideaData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                addLog(`✅ API Response: ${JSON.stringify(result)}`, 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error sending to API: ${error.message}`, 'error');
+                
+                // If API endpoint doesn't exist, show instructions
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    addLog('💡 API endpoint not accessible. Check if file exists at /api/receive-idea.php', 'warning');
+                }
+            }
+        }
+        
+        // Start polling
+        function startPolling() {
+            if (pollingInterval) {
+                addLog('⚠️ Polling is already running', 'warning');
+                return;
+            }
+            
+            const interval = parseInt(document.getElementById('pollInterval').value) * 1000;
+            
+            // Initialize last checked time if not set
+            if (!lastCheckedTime) {
+                initializeLastCheckedTime();
+            }
+            
+            addLog(`▶️ Starting polling (interval: ${interval/1000}s)`, 'success');
+            document.getElementById('status').className = 'status running';
+            document.getElementById('status').textContent = '🟢 Polling Running';
+            
+            // Check immediately
+            checkForNewIdeas();
+            
+            // Set interval
+            pollingInterval = setInterval(checkForNewIdeas, interval);
+        }
+        
+        // Stop polling
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                
+                addLog('⏹️ Polling stopped', 'error');
+                document.getElementById('status').className = 'status stopped';
+                document.getElementById('status').textContent = '🔴 Polling Stopped';
+            }
+        }
+        
+        // Manual check
+        function manualCheck() {
+            checkForNewIdeas();
+        }
+        
+        // Create test idea for testing
+        async function testCreateIdea() {
+            try {
+                addLog('🧪 Creating test idea...');
+                
+                const testIdea = {
+                    idea_text: `Test idea created at ${new Date().toLocaleString('vi-VN')}`,
+                    is_auto_created: false,
+                    is_choosen: false,
+                    is_upload: false,
+                    scenario: {
+                        hook1: "Test Hook 1",
+                        body1: "Test Body 1",
+                        hook2: "Test Hook 2",
+                        body2: "Test Body 2",
+                        conclusion: "Test Conclusion"
+                    }
+                };
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/contents_idea`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(testIdea)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                addLog('✅ Test idea created successfully!', 'success');
+                addLog(`ID: ${data[0].id}`, 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error creating test idea: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Initialize
+        initializeLastCheckedTime();
+        addLog('🚀 Supabase Polling API Test V2 initialized');
+        addLog(`📍 Project: ${SUPABASE_URL}`);
+        addLog('💡 Click "Test Connection" to verify setup');
+        
+        // Auto test connection on load
+        setTimeout(testConnection, 1000);
+    </script>
+</body>
+</html>

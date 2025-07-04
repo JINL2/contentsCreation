@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        video {
+            width: 100%;
+            height: 400px;
+            background: #000;
+            margin: 20px 0;
+        }
+        .info {
+            background: #e0e0e0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>비디오 디버그 테스트</h1>
+        
+        <h2>테스트 1: 직접 비디오 엘리먼트</h2>
+        <video id="test1" controls>
+            <source src="https://yenfccoefczqxckbizqa.supabase.co/storage/v1/object/public/contents-videos/1751108379030_test-video.mp4" type="video/mp4">
+        </video>
+        <div id="info1" class="info"></div>
+        
+        <h2>테스트 2: JavaScript로 로드</h2>
+        <video id="test2" controls></video>
+        <button onclick="loadVideo2()">비디오 로드</button>
+        <div id="info2" class="info"></div>
+        
+        <h2>테스트 3: 다른 소스 테스트</h2>
+        <video id="test3" controls>
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        </video>
+        <div id="info3" class="info"></div>
+        
+        <h2>테스트 4: iFrame 테스트</h2>
+        <iframe src="https://yenfccoefczqxckbizqa.supabase.co/storage/v1/object/public/contents-videos/1751108379030_test-video.mp4" 
+                width="100%" height="400" style="border: 1px solid #ccc;"></iframe>
+    </div>
+
+    <script>
+        // 테스트 1 모니터링
+        const video1 = document.getElementById('test1');
+        const info1 = document.getElementById('info1');
+        
+        video1.addEventListener('loadstart', () => {
+            info1.innerHTML += '✅ loadstart 이벤트 발생\n';
+        });
+        
+        video1.addEventListener('loadedmetadata', () => {
+            info1.innerHTML += '✅ loadedmetadata 이벤트 발생\n';
+            info1.innerHTML += `비디오 정보: ${video1.videoWidth}x${video1.videoHeight}, 길이: ${video1.duration}초\n`;
+        });
+        
+        video1.addEventListener('canplay', () => {
+            info1.innerHTML += '✅ canplay 이벤트 발생 - 재생 가능\n';
+        });
+        
+        video1.addEventListener('error', (e) => {
+            info1.innerHTML += `❌ 에러 발생: ${e.type}\n`;
+            if (video1.error) {
+                info1.innerHTML += `에러 코드: ${video1.error.code}\n`;
+                info1.innerHTML += `에러 메시지: ${video1.error.message}\n`;
+            }
+        });
+        
+        // 테스트 2 함수
+        function loadVideo2() {
+            const video2 = document.getElementById('test2');
+            const info2 = document.getElementById('info2');
+            
+            info2.innerHTML = '비디오 로드 시작...\n';
+            
+            video2.src = 'https://yenfccoefczqxckbizqa.supabase.co/storage/v1/object/public/contents-videos/1751200665236_test-video.mp4';
+            
+            video2.addEventListener('loadeddata', () => {
+                info2.innerHTML += '✅ 비디오 데이터 로드 성공\n';
+            });
+            
+            video2.addEventListener('error', (e) => {
+                info2.innerHTML += `❌ 에러: ${e.type}\n`;
+            });
+            
+            video2.load();
+        }
+        
+        // 테스트 3 모니터링
+        const video3 = document.getElementById('test3');
+        const info3 = document.getElementById('info3');
+        
+        video3.addEventListener('canplay', () => {
+            info3.innerHTML = '✅ 외부 비디오 소스 정상 작동\n';
+        });
+        
+        video3.addEventListener('error', () => {
+            info3.innerHTML = '❌ 외부 비디오 소스 에러\n';
+        });
+        
+        // 네트워크 상태 확인
+        fetch('https://yenfccoefczqxckbizqa.supabase.co/storage/v1/object/public/contents-videos/1751108379030_test-video.mp4', {
+            method: 'HEAD'
+        })
+        .then(response => {
+            info1.innerHTML += `\n네트워크 응답: ${response.status} ${response.statusText}\n`;
+            info1.innerHTML += `Content-Type: ${response.headers.get('Content-Type')}\n`;
+            info1.innerHTML += `Content-Length: ${response.headers.get('Content-Length')} bytes\n`;
+        })
+        .catch(error => {
+            info1.innerHTML += `\n네트워크 에러: ${error.message}\n`;
+        });
+    </script>
+</body>
+</html>

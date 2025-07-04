@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 데이터 무결성 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 30px;
+            border-bottom: 2px solid #FF6B35;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #E55100;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF6B35;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #FF6B35;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Supabase 데이터 무결성 테스트</h1>
+        
+        <div class="test-section">
+            <h3>Jin 사용자 정보</h3>
+            <div class="info">
+                <strong>User ID:</strong> 0d2e61ad-e230-454e-8b90-efbe1c1a9268<br>
+                <strong>User Name:</strong> Jin<br>
+                <strong>Company ID:</strong> ebd66ba7-fde7-4332-b6b5-0d8a7f615497<br>
+                <strong>Store ID:</strong> 16f4c231-185a-4564-b473-bad1e9b305e8
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="checkDataIntegrity()">1. 데이터 무결성 체크</button>
+            <button onclick="fixJinData()" id="fixButton" disabled>2. Jin 데이터 수정</button>
+            <button onclick="verifyFix()" id="verifyButton" disabled>3. 수정 결과 확인</button>
+            <button onclick="testRPCFunction()">4. RPC 함수 테스트</button>
+        </div>
+
+        <h2>📊 현재 상태</h2>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="userUploads">-</div>
+                <div class="stat-label">Jin의 업로드</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="companyUploads">-</div>
+                <div class="stat-label">회사 전체 업로드</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="storeUploads">-</div>
+                <div class="stat-label">스토어 업로드</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="nullCount">-</div>
+                <div class="stat-label">NULL 데이터</div>
+            </div>
+        </div>
+
+        <h2>🔎 테스트 결과</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        
+        const JIN_USER_ID = '0d2e61ad-e230-454e-8b90-efbe1c1a9268';
+        const COMPANY_ID = 'ebd66ba7-fde7-4332-b6b5-0d8a7f615497';
+        const STORE_ID = '16f4c231-185a-4564-b473-bad1e9b305e8';
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const result = document.createElement('div');
+            result.className = `result ${type}`;
+            result.innerHTML = message;
+            results.appendChild(result);
+        }
+
+        function showLoading() {
+            document.getElementById('results').innerHTML = '<div class="loading"><div class="spinner"></div>처리 중...</div>';
+        }
+
+        async function checkDataIntegrity() {
+            showLoading();
+            
+            try {
+                // 1. Jin의 업로드 확인
+                const { data: jinUploads, error: error1 } = await supabaseClient
+                    .from('content_uploads')
+                    .select('*')
+                    .eq('user_id', JIN_USER_ID);
+                
+                if (error1) throw error1;
+                
+                document.getElementById('userUploads').textContent = jinUploads.length;
+                
+                addResult(`<strong>1. Jin의 업로드 데이터 (${jinUploads.length}개)</strong>`, 'info');
+                
+                let nullCompanyCount = 0;
+                let nullStoreCount = 0;
+                
+                jinUploads.forEach((upload, index) => {
+                    const hasCompany = upload.company_id === COMPANY_ID;
+                    const hasStore = upload.store_id === STORE_ID;
+                    
+                    if (!upload.company_id) nullCompanyCount++;
+                    if (!upload.store_id) nullStoreCount++;
+                    
+                    const status = hasCompany && hasStore ? 'success' : 'warning';
+                    addResult(`
+                        Upload ${index + 1}: 
+                        <br>- ID: ${upload.id}
+                        <br>- Company: ${upload.company_id || 'NULL'} ${hasCompany ? '✅' : '❌'}
+                        <br>- Store: ${upload.store_id || 'NULL'} ${hasStore ? '✅' : '❌'}
+                        <br>- Created: ${new Date(upload.created_at).toLocaleString()}
+                        <br>- Points: ${upload.points_earned}
+                    `, status);
+                });
+                
+                document.getElementById('nullCount').textContent = nullCompanyCount + nullStoreCount;
+                
+                // 2. 회사 전체 업로드 확인
+                const { data: companyData, error: error2 } = await supabaseClient
+                    .from('content_uploads')
+                    .select('*')
+                    .eq('company_id', COMPANY_ID);
+                
+                if (!error2) {
+                    document.getElementById('companyUploads').textContent = companyData.length;
+                    addResult(`<strong>2. 회사 전체 업로드: ${companyData.length}개</strong>`, 'info');
+                }
+                
+                // 3. 스토어 업로드 확인
+                const { data: storeData, error: error3 } = await supabaseClient
+                    .from('content_uploads')
+                    .select('*')
+                    .eq('store_id', STORE_ID);
+                
+                if (!error3) {
+                    document.getElementById('storeUploads').textContent = st

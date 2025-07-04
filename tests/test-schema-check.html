@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Schema Check - Contents Helper</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+            text-align: center;
+        }
+        .table-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #E55100;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #FF6B35;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .fix-button {
+            background: #28a745;
+        }
+        .fix-button:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Database Schema Check</h1>
+        
+        <div class="table-section">
+            <h2>1. content_uploads 테이블 구조 확인</h2>
+            <button onclick="checkTableSchema()">📊 테이블 구조 확인</button>
+            <button onclick="checkSampleData()">📋 샘플 데이터 확인</button>
+            <div id="schema-result" class="result"></div>
+        </div>
+
+        <div class="table-section">
+            <h2>2. 테이블 구조 수정 (필요시)</h2>
+            <button onclick="showCurrentSchema()">🔍 현재 구조 보기</button>
+            <button onclick="fixTableSchema()" class="fix-button">🔧 테이블 구조 수정</button>
+            <div id="fix-result" class="result"></div>
+        </div>
+
+        <div class="table-section">
+            <h2>3. 테스트 업로드</h2>
+            <button onclick="testDirectUpload()">🚀 Direct API 테스트</button>
+            <div id="test-result" class="result"></div>
+        </div>
+
+        <div class="table-section">
+            <h2>4. SQL 직접 실행</h2>
+            <textarea id="sql-query" rows="5" style="width: 100%; margin: 10px 0;" placeholder="SQL 쿼리 입력...">
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'content_uploads' 
+ORDER BY ordinal_position;</textarea>
+            <br>
+            <button onclick="executeSql()">▶️ SQL 실행</button>
+            <div id="sql-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const supabaseUrl = 'https://yenfccoefczqxckbizqa.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbmZjY29lZmN6cXhja2JpenFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDkyNzksImV4cCI6MjA2MTUyNTI3OX0.U1iQUOaNPSrEHf1w_ePqgYzJiRO6Bi48E2Np2hY0nCQ';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // 결과 표시 함수
+        function showResult(elementId, content, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            
+            if (typeof content === 'object') {
+                element.textContent = JSON.stringify(content, null, 2);
+            } else {
+                element.textContent = content;
+            }
+        }
+
+        // 테이블 구조 확인
+        async function checkTableSchema() {
+            try {
+                // 빈 쿼리로 테이블 구조 확인
+                const { data, error } = await supabase
+                    .from('content_uploads')
+                    .select('*')
+                    .limit(0);
+                
+                if (error) {
+                    showResult('schema-result', `Error: ${error.message}\n\nDetail: ${JSON.stringify(error, null, 2)}`, false);
+                    return;
+                }
+                
+                // 실제 데이터 1개 가져오기
+                const { data: sampleData, error: sampleError } = await supabase
+                    .from('content_uploads')
+                    .select('*')
+                    .limit(1);
+                
+                let resultText = '✅ 테이블 접근 성공!\n\n';
+                
+                if (sampleData && sampleData.length > 0) {
+                    resultText += '컬럼 목록:\n';
+                    const columns = Object.keys(sampleData[0]);
+                    columns.forEach(col => {
+                        resultText += `- ${col}: ${typeof sampleData[0][col]}\n`;
+                    });
+                } else {
+                    resultText += '테이블이 비어있습니다. 컬럼 정보를 확인할 수 없습니다.';
+                }
+                
+                showResult('schema-result', resultText);
+                
+            } catch (error) {
+                showResult('schema-result', `Exception: ${error.message}`, false);
+            }
+        }
+
+        // 샘플 데이터 확인
+        async function checkSampleData() {
+            try {
+                const { data, error } = await supabase
+                    .from('content_uploads')
+                    .select('*')
+                    .limit(3)
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    showResult('schema-result', `Error: ${error.message}`, false);
+                    return;
+                }
+                
+                if (data && data.length > 0) {
+                    showResult('schema-result', `최근 데이터 ${data.length}개:\n\n${JSON.stringify(data, null, 2)}`);
+                } else {
+                    showResult('schema-result', '테이블에 데이터가 없습니다.');
+                }
+                
+            } catch (error) {
+                showResult('schema-result', `Exception: ${error.message}`, false);
+            }
+        }
+
+        // 현재 스키마 보기
+        async function showCurrentSchema() {
+            const schemaInfo = `
+현재 코드에서 사용하는 컬럼:
+- content_id (contents_idea 테이블의 ID 참조)
+- user_id
+- upload_url
+- file_name
+- upload_time
+- status
+- metadata (JSON)
+
+실제 테이블 구조를 확인하려면 위의 '테이블 구조 확인' 버튼을 클릭하세요.
+`;
+            showResult('fix-result', schemaInfo);
+        }
+
+        // 테이블 구조 수정 SQL
+        async function fixTableSchema() {
+            const fixSql = `
+-- content_uploads 테이블 구조 수정을 위한 SQL
+-- Supabase SQL Editor에서 실행하세요:
+
+-- 1. content_idea_id를 content_id로 변경 (컬럼명이 다른 경우)
+ALTER TABLE content_uploads 
+RENAME COLUMN content_idea_id TO content_id;
+
+-- 2. video_url을 upload_url로 변경 (컬럼명이 다른 경우)
+ALTER TABLE content_uploads 
+RENAME COLUMN video_url TO upload_url;
+
+-- 3. 누락된 컬럼 추가
+ALTER TABLE content_uploads 
+ADD COLUMN IF NOT EXISTS file_name TEXT,
+ADD COLUMN IF NOT EXISTS upload_time TIMESTAMP DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'uploaded';
+
+-- 4. metadata 컬럼이 없다면 추가
+ALTER TABLE content_uploads 
+ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+`;
+            showResult('fix-result', fixSql);
+        }
+
+        // Direct API 테스트
+        async function testDirectUpload() {
+            try {
+                const testData = {
+                    content_id: 'test-content-' + Date.now(),
+                    user_id: '0d2e61ad-e230-454e-8b90-efbe1c1a9268',
+                    upload_url: 'https://example.com/test-video.mp4',
+                    file_name: 'test-video.mp4',
+                    upload_time: new Date().toISOString(),
+                    status: 'uploaded',
+                    metadata: {
+                        test: true,
+                        timestamp: Date.now()
+                    }
+                };
+                
+                showResult('test-result', `테스트 데이터:\n${JSON.stringify(testData, null, 2)}\n\n업로드 중...`);
+                
+                const { data, error } = await supabase
+                    .from('content_uploads')
+                    .insert([testData])
+                    .select();
+                
+                if (error) {
+                    showResult('test-result', `업로드 실패:\n${JSON.stringify(error, null, 2)}`, false);
+                } else {
+                    showResult('test-result', `업로드 성공!\n${JSON.stringify(data, null, 2)}`);
+                }
+                
+            } catch (error) {
+                showResult('test-result', `Exception: ${error.message}`, false);
+            }
+        }
+
+        // SQL 실행
+        async function executeSql() {
+            const query = document.getElementById('sql-query').value;
+            
+            try {
+                const { data, error } = await supabase.rpc('execute_sql', { query });
+                
+                if (error) {
+                    // RPC가 없으면 일반 쿼리로 시도
+                    showResult('sql-result', `RPC not available. Use Supabase SQL Editor instead.\n\nQuery to run:\n${query}`, false);
+                } else {
+                    showResult('sql-result', JSON.stringify(data, null, 2));
+                }
+                
+            } catch (error) {
+                showResult('sql-result', `Use this query in Supabase SQL Editor:\n\n${query}`, false);
+            }
+        }
+
+        // 페이지 로드시 자동 확인
+        window.onload = function() {
+            checkTableSchema();
+        };
+    </script>
+</body>
+</html>

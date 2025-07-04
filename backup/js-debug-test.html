@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>JavaScript Execution Debug Test</h1>
+    <div id="log"></div>
+
+    <script src="config.js"></script>
+    <script>
+        const log = document.getElementById('log');
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        function addLog(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(p);
+        }
+
+        // URL 파라미터 확인
+        addLog('=== URL Parameters ===');
+        addLog(`user_id: ${urlParams.get('user_id')}`);
+        addLog(`user_name: ${urlParams.get('user_name')}`);
+        addLog(`company_id: ${urlParams.get('company_id')}`);
+        addLog(`store_id: ${urlParams.get('store_id')}`);
+        
+        // Supabase 초기화
+        addLog('=== Supabase Initialization ===');
+        try {
+            const { createClient } = supabase;
+            const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+            addLog('Supabase client created', 'success');
+            
+            // 전역 변수 설정 (script.js와 동일)
+            const GAME_CONFIG = { points: {}, levels: [], achievements: [] };
+            let currentState = {
+                userId: urlParams.get('user_id') || 'test_user',
+                userName: urlParams.get('user_name') || 'Test User',
+                companyId: urlParams.get('company_id'),
+                storeId: urlParams.get('store_id'),
+                userPoints: 0,
+                userLevel: 1,
+                userStreak: 0
+            };
+            
+            // 각 주요 함수 테스트
+            async function testFunctions() {
+                // 1. loadGameConfig 테스트
+                addLog('=== Testing loadGameConfig ===');
+                try {
+                    const { data: pointsData, error } = await supabaseClient
+                        .from('points_system')
+                        .select('*')
+                        .eq('is_active', true);
+                    
+                    if (error) throw error;
+                    addLog(`Loaded ${pointsData.length} point rules`, 'success');
+                    
+                    // 레벨 시스템 로드
+                    const { data: levelsData, error: levelsError } = await supabaseClient
+                        .from('level_system')
+                        .select('*')
+                        .eq('is_active', true);
+                    
+                    if (levelsError) throw levelsError;
+                    addLog(`Loaded ${levelsData.length} levels`, 'success');
+                    
+                } catch (error) {
+                    addLog(`loadGameConfig error: ${error.message}`, 'error');
+                    addLog(JSON.stringify(error), 'error');
+                }
+                
+                // 2. loadUserStats 테스트
+                addLog('=== Testing loadUserStats ===');
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('user_progress')
+                        .select('*')
+                        .eq('user_id', currentState.userId)
+                        .single();
+                    
+                    if (error && error.code !== 'PGRST116') {
+                        throw error;
+                    }
+                    
+                    if (data) {
+                        addLog(`User progress found: ${data.total_points} points, Level ${data.current_level}`, 'success');
+                    } else {
+                        addLog('No user progress found (will create new)', 'info');
+                    }
+                    
+                } catch (error) {
+                    addLog(`loadUserStats error: ${error.message}`, 'error');
+                    addLog(JSON.stringify(error), 'error');
+                }
+                
+                // 3. loadContentIdeas 테스트
+                addLog('=== Testing loadContentIdeas ===');
+                try {
+                    // is_choosen=true인 아이디어 찾기
+                    const { data: choosenIdeas, error: choosenError } = await supabaseClient
+                        .from('contents_idea')
+                        .select('*')
+                        .eq('is_choosen', true)
+                        .eq('is_upload', false)
+                        .limit(1);
+                    
+                    if (choosenError) throw choosenError;
+                    addLog(`Found ${choosenIdeas?.length || 0} chosen ideas`, 'info');
+                    
+                    // 사용 가능한 모든 아이디어
+                    const { data: availableIdeas, error: availableError } = await supabaseClient
+                        .from('contents_idea')
+                        .select('*')
+                        .eq('is_upload', false);
+                    
+                    if (availableError) throw availableError;
+                    addLog(`Found ${availableIdeas.length} available ideas`, 'success');
+                    
+                    // 첫 3개 아이디어 표시
+                    if (availableIdeas.length > 0) {
+                        addLog('Sample ideas:', 'info');
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(availableIdeas.slice(0, 3).map(i => ({
+                            id: i.id,
+                            title: i.title_vi,
+                            category: i.category
+                        })), null, 2);
+                        log.appendChild(pre);
+                    }
+                    
+                } catch (error) {
+                    addLog(`loadContentIdeas error: ${error.message}`, 'error');
+                    addLog(JSON.stringify(error), 'error');
+                }
+                
+                // 4. localStorage 테스트
+                addLog('=== Testing localStorage ===');
+                try {
+                    localStorage.setItem('test_key', 'test_value');
+                    const testValue = localStorage.getItem('test_key');
+                    if (testValue === 'test_value') {
+                        addLog('localStorage is working', 'success');
+                        localStorage.removeItem('test_key');
+                    } else {
+                        addLog('localStorage read/write failed', 'error');
+                    }
+                } catch (error) {
+                    addLog(`localStorage error: ${error.message}`, 'error');
+                }
+                
+                // 5. DOM 요소 확인
+                addLog('=== Testing DOM Elements (from main page) ===');
+                const requiredElements = [
+                    'ideaCards',
+                    'userPoints',
+                    'userLevel',
+                    'userStreak',
+                    'refreshIdeas'
+                ];
+                
+                // 실제 페이지가 아니므로 이 테스트는 참고용
+                addLog('Required DOM elements for main page:', 'info');
+                requiredElements.forEach(id => {
+                    addLog(`- ${id}`, 'info');
+                });
+            }
+            
+            // 테스트 실행
+            testFunctions();
+            
+        } catch (error) {
+            addLog(`Initialization error: ${error.message}`, 'error');
+        }
+    </script>
+</body>
+</html>

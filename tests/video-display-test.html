@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비디오 표시 테스트</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #FF6B35;
+            margin-bottom: 30px;
+        }
+        
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .video-player {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+        
+        .video-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 8px;
+        }
+        
+        .video-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #FF6B35;
+        }
+        
+        .video-meta {
+            font-size: 14px;
+            color: #aaa;
+            line-height: 1.6;
+        }
+        
+        .test-videos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .video-card {
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .video-thumbnail {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #000;
+        }
+        
+        .video-card-info {
+            padding: 15px;
+        }
+        
+        .video-card-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .video-card-meta {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #FF6B35;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #ff5722;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        
+        .error {
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Contents Helper - 비디오 표시 테스트</h1>
+    
+    <div class="video-container">
+        <video id="mainVideo" class="video-player" controls>
+            <source src="" type="video/mp4">
+            브라우저가 비디오를 지원하지 않습니다.
+        </video>
+        
+        <div class="video-info">
+            <div class="video-title">샘플 비디오</div>
+            <div class="video-meta">
+                <div>📍 매장: Cameraon Store #1</div>
+                <div>👤 제작자: Jin</div>
+                <div>📅 업로드: 2025-06-30</div>
+                <div>⭐ 평점: 4.5/5</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="playTestVideo1()">테스트 비디오 1</button>
+            <button onclick="playTestVideo2()">테스트 비디오 2</button>
+            <button onclick="playSupabaseVideo()">Supabase 비디오</button>
+            <button onclick="testVideoEvents()">비디오 이벤트 테스트</button>
+        </div>
+    </div>
+    
+    <div class="test-videos">
+        <div class="video-card" onclick="playVideo('https://www.w3schools.com/html/mov_bbb.mp4', 'Big Buck Bunny')">
+            <video class="video-thumbnail" src="https://www.w3schools.com/html/mov_bbb.mp4" muted></video>
+            <div class="video-card-info">
+                <div class="video-card-title">Big Buck Bunny</div>
+                <div class="video-card-meta">테스트 비디오 • 10초</div>
+            </div>
+        </div>
+        
+        <div class="video-card" onclick="playVideo('https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', 'Sample Video')">
+            <video class="video-thumbnail" src="https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" muted></video>
+            <div class="video-card-info">
+                <div class="video-card-title">Sample HD Video</div>
+                <div class="video-card-meta">HD 품질 • 1MB</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="eventLog" style="margin-top: 40px; padding: 20px; background: #222; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+
+    <script>
+        const video = document.getElementById('mainVideo');
+        const eventLog = document.getElementById('eventLog');
+        
+        // 비디오 이벤트 로깅
+        function logEvent(message) {
+            const time = new Date().toLocaleTimeString();
+            eventLog.innerHTML = `<div style="color: #4CAF50">[${time}] ${message}</div>` + eventLog.innerHTML;
+        }
+        
+        // 비디오 이벤트 리스너
+        video.addEventListener('loadstart', () => logEvent('🔄 비디오 로드 시작'));
+        video.addEventListener('loadedmetadata', () => logEvent('📊 메타데이터 로드 완료'));
+        video.addEventListener('loadeddata', () => logEvent('📦 비디오 데이터 로드 완료'));
+        video.addEventListener('canplay', () => logEvent('▶️ 재생 가능 상태'));
+        video.addEventListener('canplaythrough', () => logEvent('⏩ 버퍼링 없이 재생 가능'));
+        video.addEventListener('play', () => logEvent('▶️ 재생 시작'));
+        video.addEventListener('pause', () => logEvent('⏸️ 일시정지'));
+        video.addEventListener('ended', () => logEvent('⏹️ 재생 완료'));
+        video.addEventListener('error', (e) => logEvent('❌ 에러 발생: ' + e.message));
+        video.addEventListener('timeupdate', () => {
+            if (Math.floor(video.currentTime) % 5 === 0 && video.currentTime > 0) {
+                logEvent(`⏱️ 재생 시간: ${Math.floor(video.currentTime)}초`);
+            }
+        });
+        
+        // 테스트 비디오 재생 함수들
+        function playTestVideo1() {
+            playVideo('https://www.w3schools.com/html/mov_bbb.mp4', 'Big Buck Bunny - W3Schools');
+        }
+        
+        function playTestVideo2() {
+            playVideo('https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', 'Sample Video - HD');
+        }
+        
+        function playSupabaseVideo() {
+            // Supabase 스토리지 URL 예시
+            const supabaseUrl = 'https://yenfccoefczqxckbizqa.supabase.co/storage/v1/object/public/contents-videos/test-video.mp4';
+            playVideo(supabaseUrl, 'Supabase Storage Video');
+        }
+        
+        function playVideo(url, title) {
+            video.src = url;
+            document.querySelector('.video-title').textContent = title;
+            // 자동재생 제거 - 사용자가 직접 재생 버튼 클릭
+            logEvent('🎥 비디오 로드 완료 - 재생 버튼을 클릭하세요');
+        }
+        
+        function testVideoEvents() {
+            logEvent('🧪 비디오 이벤트 테스트 시작');
+            
+            // 현재 비디오 상태 확인
+            logEvent(`📍 현재 시간: ${video.currentTime}초`);
+            logEvent(`⏱️ 전체 길이: ${video.duration}초`);
+            logEvent(`🔊 볼륨: ${Math.round(video.volume * 100)}%`);
+            logEvent(`⏸️ 일시정지 상태: ${video.paused ? '예' : '아니오'}`);
+            logEvent(`🎬 준비 상태: ${video.readyState}`);
+            logEvent(`📡 네트워크 상태: ${video.networkState}`);
+        }
+        
+        // 페이지 로드 시 첫 번째 비디오 로드 (자동재생 없이)
+        window.onload = () => {
+            video.src = 'https://www.w3schools.com/html/mov_bbb.mp4';
+            document.querySelector('.video-title').textContent = 'Big Buck Bunny - W3Schools';
+            logEvent('📱 비디오 표시 테스트 준비 완료');
+            logEvent('🎥 비디오 로드 완료 - 재생 버튼을 클릭하세요');
+        };
+        
+        // 썸네일 호버 시 미리보기
+        document.querySelectorAll('.video-thumbnail').forEach(thumb => {
+            thumb.addEventListener('mouseenter', function() {
+                this.play();
+            });
+            thumb.addEventListener('mouseleave', function() {
+                this.pause();
+                this.currentTime = 0;
+            });
+        });
+    </script>
+</body>
+</html>

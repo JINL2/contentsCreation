@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contents Helper - Simple Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .idea-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .idea-card h3 {
+            margin: 0 0 10px 0;
+            color: #ff6b35;
+        }
+        .category {
+            display: inline-block;
+            background: #ff6b35;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            color: red;
+            padding: 20px;
+            background: #fee;
+            border-radius: 8px;
+        }
+        .success {
+            color: green;
+            background: #efe;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .stats {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .custom-idea-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .custom-idea-button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contents Helper - Simple Test</h1>
+    
+    <div class="stats">
+        <h2>User Stats</h2>
+        <p>User ID: <span id="userId">Loading...</span></p>
+        <p>User Name: <span id="userName">Loading...</span></p>
+        <p>Points: <span id="userPoints">0</span></p>
+        <p>Level: <span id="userLevel">1</span></p>
+    </div>
+    
+    <div id="ideas-container">
+        <h2>Content Ideas</h2>
+        <div id="loading" class="loading">Loading ideas...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="ideas-list"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id') || 'test-user';
+        const userName = urlParams.get('user_name') || 'Test User';
+        
+        // Display user info
+        document.getElementById('userId').textContent = userId;
+        document.getElementById('userName').textContent = userName;
+        
+        // Main function
+        async function init() {
+            console.log('Starting initialization...');
+            
+            try {
+                // 1. Load user stats
+                console.log('1. Loading user stats...');
+                const { data: userData, error: userError } = await supabaseClient
+                    .from('user_progress')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .single();
+                
+                if (userData) {
+                    document.getElementById('userPoints').textContent = userData.total_points;
+                    document.getElementById('userLevel').textContent = userData.current_level;
+                    console.log('User data loaded:', userData);
+                } else {
+                    console.log('No user data found');
+                }
+                
+                // 2. Load ideas
+                console.log('2. Loading content ideas...');
+                const { data: ideas, error: ideasError } = await supabaseClient
+                    .from('contents_idea')
+                    .select('*')
+                    .eq('is_upload', false)
+                    .limit(10);
+                
+                if (ideasError) throw ideasError;
+                
+                console.log(`Loaded ${ideas.length} ideas`);
+                
+                // 3. Display ideas
+                displayIdeas(ideas);
+                
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        function displayIdeas(ideas) {
+            const container = document.getElementById('ideas-list');
+            container.innerHTML = '';
+            
+            // Add regular ideas
+            ideas.slice(0, 5).forEach(idea => {
+                const card = document.createElement('div');
+                card.className = 'idea-card';
+                card.innerHTML = `
+                    <div class="category">${idea.category}</div>
+                    <h3>${idea.title_vi || idea.title_ko || 'No title'}</h3>
+                    <p>Target: ${idea.target_audience || 'Everyone'}</p>
+                    <p>Emotion: ${idea.emotion || 'N/A'}</p>
+                    ${idea.viral_tags ? `<p>Tags: ${idea.viral_tags.join(', ')}</p>` : ''}
+                    <button onclick="selectIdea(${idea.id})">Select this idea (+10 points)</button>
+                `;
+                container.appendChild(card);
+            });
+            
+            // Add custom idea button
+            const customButton = document.createElement('div');
+            customButton.className = 'custom-idea-button';
+            customButton.innerHTML = `
+                <h3>💡 Create Your Own Idea</h3>
+                <p>Express your creativity with a unique idea</p>
+                <p>+10 points</p>
+            `;
+            customButton.onclick = () => alert('Custom idea feature would open here');
+            container.appendChild(customButton);
+        }
+        
+        async function selectIdea(ideaId) {
+            alert(`Idea ${ideaId} selected! In the real app, this would:\n1. Add 10 points\n2. Show the scenario details\n3. Move to video recording step`);
+        }
+        
+        // Start the app
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Review Test - Contents Helper</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="video-review.css">
+</head>
+<body>
+    <div class="review-container">
+        <!-- 헤더 -->
+        <header class="review-header">
+            <button class="back-button" onclick="window.history.back()">
+                <span class="back-icon">←</span>
+            </button>
+            <div class="review-progress">
+                <div class="progress-info">
+                    <span class="progress-text">Hôm nay: <span>2</span>/<span>20</span></span>
+                    <span class="streak-info">🔥 <span>2</span></span>
+                </div>
+                <div class="progress-bar-slim">
+                    <div class="progress-fill-slim" style="width: 10%"></div>
+                </div>
+            </div>
+            <div class="points-earned">
+                <span class="points-icon">⭐</span>
+                <span class="points-value">+<span>15</span></span>
+            </div>
+        </header>
+
+        <!-- 비디오 뷰어 -->
+        <div class="video-viewer">
+            <div class="video-player" style="display: block;">
+                <video id="reviewVideo" autoplay muted playsinline loop>
+                    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                </video>
+                
+                <!-- 비디오 정보 오버레이 -->
+                <div class="video-info-overlay">
+                    <div class="creator-info">
+                        <span class="creator-avatar">👤</span>
+                        <div class="creator-details">
+                            <span class="creator-name">@TestUser1</span>
+                            <span class="upload-time">1 giờ trước</span>
+                        </div>
+                    </div>
+                    
+                    <div class="video-metadata">
+                        <h3 class="video-title">Photobooth cực vui với bạn bè</h3>
+                        <div class="video-tags">
+                            <span class="video-tag">#giải_trí</span>
+                            <span class="video-tag">#bạn_bè</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 평가 컨트롤 -->
+        <div class="review-controls" style="display: flex;">
+            <button class="action-button skip" onclick="handleSkip()">
+                <span class="action-icon">❌</span>
+                <span class="action-text">Skip</span>
+            </button>
+            
+            <div class="rating-container">
+                <div class="star-rating">
+                    <span class="star" onclick="rate(1)">⭐</span>
+                    <span class="star" onclick="rate(2)">⭐</span>
+                    <span class="star" onclick="rate(3)">⭐</span>
+                    <span class="star" onclick="rate(4)">⭐</span>
+                    <span class="star" onclick="rate(5)">⭐</span>
+                </div>
+                <p class="rating-hint">Đánh giá để nhận +3 điểm</p>
+            </div>
+            
+            <button class="action-button like" onclick="handleLike()">
+                <span class="action-icon">❤️</span>
+                <span class="action-text">Like</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 포인트 애니메이션 -->
+    <div class="points-animation" id="pointsAnimation" style="display: none;">
+        <span class="animated-points">+<span id="animatedPointsValue">0</span></span>
+    </div>
+
+    <script>
+        let currentRating = 0;
+        
+        function handleSkip() {
+            console.log('Skip clicked');
+            const player = document.querySelector('.video-player');
+            player.classList.add('swipe-left');
+            
+            setTimeout(() => {
+                alert('Skipped! Moving to next video...');
+                location.reload();
+            }, 300);
+        }
+        
+        function rate(rating) {
+            console.log('Rating:', rating);
+            currentRating = rating;
+            
+            // Update stars
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function handleLike() {
+            console.log('Like clicked with rating:', currentRating);
+            
+            const player = document.querySelector('.video-player');
+            player.classList.add('swipe-right');
+            
+            // Show points animation
+            const points = currentRating > 0 ? 8 : 5; // 5 for like + 3 for rating
+            showPointsAnimation(points);
+            
+            setTimeout(() => {
+                alert(`Liked! You earned ${points} points!`);
+                location.reload();
+            }, 1000);
+        }
+        
+        function showPointsAnimation(points) {
+            const animation = document.getElementById('pointsAnimation');
+            document.getElementById('animatedPointsValue').textContent = points;
+            animation.style.display = 'block';
+            
+            setTimeout(() => {
+                animation.style.display = 'none';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Custom Idea - Frontend</title>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Config -->
+    <script src="config.js"></script>
+    
+    <!-- Test Script -->
+    <script src="test-custom-idea-creation.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FF6B35;
+        }
+        .test-button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .test-button:hover {
+            background: #E55100;
+        }
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .info { color: #9cdcfe; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Frontend Custom Idea Test</h1>
+        
+        <p>이 페이지는 실제 프론트엔드 환경에서 커스텀 아이디어 생성을 테스트합니다.</p>
+        
+        <button class="test-button" onclick="runTest()">
+            커스텀 아이디어 생성 테스트 실행
+        </button>
+        
+        <h2>Console Output:</h2>
+        <div id="console"></div>
+        
+        <h2>실제 페이지 (iframe):</h2>
+        <iframe src="index.html?user_id=0d2e61ad-e230-454e-8b90-efbe1c1a9268&user_name=Jin&company_id=ebd66ba7-fde7-4332-b6b5-0d8a7f615497&store_id=16f4c231-185a-4564-b473-bad1e9b305e8"></iframe>
+    </div>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        
+        // Console 오버라이드
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToConsole(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = message;
+            consoleDiv.appendChild(entry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        async function runTest() {
+            consoleDiv.innerHTML = '';
+            addToConsole('테스트 시작...', 'info');
+            
+            try {
+                const result = await testCustomIdeaCreation();
+                if (result) {
+                    addToConsole('\n✅ 테스트 성공!', 'success');
+                    addToConsole(`생성된 아이디어 ID: ${result.id}`, 'success');
+                    
+                    // 3초 후 iframe 새로고침
+                    setTimeout(() => {
+                        addToConsole('\n페이지를 새로고침합니다...', 'info');
+                        document.querySelector('iframe').src = document.querySelector('iframe').src;
+                    }, 3000);
+                }
+            } catch (error) {
+                addToConsole(`\n❌ 테스트 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        // 페이지 로드 시 안내
+        window.onload = () => {
+            addToConsole('테스트 환경이 준비되었습니다.', 'success');
+            addToConsole('"커스텀 아이디어 생성 테스트 실행" 버튼을 클릭하세요.', 'info');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Jekyll 설정 - 빌드 제외
+exclude:
+  - node_modules
+  - vendor
+  - .git
+  - .github
+  - backup
+  - tests
+  - setup
+  - utilities
+  - "*.php"
+  - "*.sh"
+  - "*.sql"
+  - "*.mp4"
+  - "*.MP4"
+
+# Jekyll 플러그인 비활성화
+plugins: []
+
+# 테마 사용 안함
+theme: null

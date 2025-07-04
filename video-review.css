@@ -1,0 +1,562 @@
+/* ===========================
+   Video Review - Simple & Clean Layout
+   =========================== */
+
+/* 메인 컨테이너 */
+.review-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 헤더 영역 - 고정 높이 */
+.review-header {
+    background: rgba(0,0,0,0.95);
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 50px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    z-index: 103;
+}
+
+.back-button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+.review-progress {
+    flex: 1;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.streak-info {
+    color: #ff6b35;
+    font-weight: bold;
+}
+
+.progress-bar-slim {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill-slim {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b35 0%, #ff9558 100%);
+    transition: width 0.3s ease;
+}
+
+.points-earned {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255,183,53,0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+/* 비디오 영역 */
+.video-viewer {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 160px; /* 하단 컨트롤 공간 확보 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    overflow: hidden;
+}
+
+.video-player {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-player video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+/* 비디오 정보 오버레이 - 하단에 작게 표시 */
+.video-info-overlay {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: auto;
+    background: rgba(0,0,0,0.7);
+    padding: 0.5rem 0.75rem;
+    pointer-events: none;
+    border-radius: 8px;
+    max-width: 300px;
+}
+
+.video-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
+}
+
+.video-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.video-tag {
+    background: rgba(255,255,255,0.1);
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.8);
+}
+
+/* 하단 컨트롤 영역 */
+.bottom-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 100;
+    padding: 1rem;
+    display: block;
+    height: auto;
+    min-height: 160px;
+}
+
+.controls-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 별점 평가 컨테이너 */
+.star-rating-container {
+    text-align: center;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 101;
+}
+
+.star-rating {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.star {
+    font-size: 2.5rem;
+    cursor: pointer;
+    filter: grayscale(100%);
+    opacity: 0.3;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0.25rem;
+}
+
+.star:hover {
+    filter: grayscale(0%);
+    opacity: 0.8;
+    transform: scale(1.1);
+}
+
+.star.active {
+    filter: grayscale(0%);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.rating-hint {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.6);
+    margin: 0;
+}
+
+/* 이미 평가된 컨테이너 */
+.already-reviewed-container {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.already-reviewed-message {
+    background: rgba(66, 199, 103, 0.2);
+    border: 1px solid #42c767;
+    padding: 0.8rem 1.5rem;
+    border-radius: 10px;
+    color: #42c767;
+    font-weight: 500;
+    display: inline-block;
+    font-size: 1rem;
+}
+
+/* 컨트롤 버튼 그룹 */
+.control-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.control-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.control-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.control-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* 홈 버튼 */
+.home-btn {
+    background: rgba(255, 107, 53, 0.2);
+    border-color: #ff6b35;
+}
+
+.home-btn:hover {
+    background: rgba(255, 107, 53, 0.3);
+}
+
+/* 다음 비디오 버튼 */
+.next-btn {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: #4CAF50;
+}
+
+.next-btn:hover {
+    background: rgba(76, 175, 80, 0.3);
+}
+
+/* 다음 비디오 플로팅 버튼 - 평가 완료 후 표시 */
+.floating-next-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    cursor: pointer;
+    display: none !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1002;
+    animation: pulse 2s infinite;
+}
+
+.floating-next-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+}
+
+.floating-next-btn.show {
+    display: flex !important;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.8);
+    }
+    100% {
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    }
+}
+
+.floating-next-btn svg {
+    width: 30px;
+    height: 30px;
+}
+
+
+
+/* 로딩 상태 */
+.loading-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: rgba(255,255,255,0.6);
+}
+
+.spinner-large {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: #ff6b35;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    animation: spin 1s linear infinite;
+}
+
+/* 빈 상태 */
+.empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    padding: 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 1.5rem;
+}
+
+/* 애니메이션 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Fade out 애니메이션 */
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.video-player.fade-out {
+    animation: fadeOut 0.5s ease-out forwards;
+}
+
+/* 포인트 애니메이션 */
+.points-animation {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200;
+    display: none;
+    pointer-events: none;
+}
+
+.animated-points {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ffb735;
+    text-shadow: 0 0 20px rgba(255,183,53,0.5);
+    animation: pointsPop 1s ease-out;
+}
+
+@keyframes pointsPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) translateY(-50px);
+        opacity: 0;
+    }
+}
+
+/* 연속 평가 애니메이션 */
+.streak-animation {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200;
+    text-align: center;
+    display: none;
+    pointer-events: none;
+}
+
+.streak-fire {
+    font-size: 4rem;
+    animation: fireShake 0.5s ease-out infinite;
+}
+
+.streak-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ff6b35;
+    margin-top: 0.5rem;
+}
+
+@keyframes fireShake {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+/* 토스트 메시지 */
+.toast {
+    position: fixed;
+    bottom: 320px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.95);
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 300;
+    max-width: 90%;
+    animation: slideUp 0.3s ease-out;
+}
+
+.review-panel.open ~ .toast {
+    bottom: 320px;
+}
+
+.review-panel:not(.open) ~ .toast {
+    bottom: 70px;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+.success-toast {
+    border: 1px solid #42c767;
+}
+
+.error-toast {
+    border: 1px solid #ff4458;
+}
+
+.toast-icon {
+    font-size: 1.2rem;
+}
+
+.toast-message {
+    color: #fff;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .review-header {
+        padding: 0.5rem;
+        min-height: 45px;
+    }
+    
+    .bottom-controls {
+        padding: 0.5rem;
+    }
+    
+    .star {
+        font-size: 1.8rem;
+    }
+    
+    .star-rating {
+        gap: 0.25rem;
+    }
+    
+    .control-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .control-btn span {
+        display: none; /* 모바일에서 텍스트 숨김 */
+    }
+    
+    .control-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+
+
+/* 토스트 메시지 위치 */
+.toast {
+    bottom: 250px;
+}

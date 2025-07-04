@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đánh giá Video - Contents Helper</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="video-review.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="review-container">
+        <!-- 헤더 -->
+        <header class="review-header">
+            <button class="back-button" onclick="goBack()">
+                <span class="back-icon">←</span>
+            </button>
+            <div class="review-progress">
+                <div class="progress-info">
+                    <span class="progress-text">Hôm nay: <span id="todayReviewed">0</span>/<span id="todayTarget">20</span></span>
+                    <span class="streak-info">🔥 <span id="reviewStreak">0</span></span>
+                </div>
+                <div class="progress-bar-slim">
+                    <div class="progress-fill-slim" id="reviewProgressFill"></div>
+                </div>
+            </div>
+            <div class="points-earned">
+                <span class="points-icon">⭐</span>
+                <span class="points-value">+<span id="earnedPoints">0</span></span>
+            </div>
+        </header>
+
+        <!-- 비디오 뷰어 -->
+        <div class="video-viewer" id="videoViewer">
+            <!-- 로딩 상태 -->
+            <div class="loading-state" id="loadingState">
+                <div class="spinner-large"></div>
+                <p>Đang tải video...</p>
+            </div>
+
+            <!-- 비디오 플레이어 -->
+            <div class="video-player" id="videoPlayer" style="display: none;">
+                <!-- 단순화된 비디오 엘리먼트 -->
+                <video id="reviewVideo" controls style="width: 100%; height: 100%;"></video>
+                
+                <!-- 비디오 정보 오버레이 -->
+                <div class="video-info-overlay">
+                    <div class="video-metadata">
+                        <h3 class="video-title" id="videoTitle">Tiêu đề video</h3>
+                        <div class="video-tags" id="videoTags">
+                            <!-- 태그 동적 생성 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빈 상태 -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">🎬</div>
+                <h3>Không còn video để đánh giá</h3>
+                <p>Bạn đã đánh giá tất cả video của công ty!</p>
+                <p>Hãy quay lại sau khi có video mới.</p>
+                <button class="btn btn-primary" onclick="goBack()">Quay lại trang chính</button>
+            </div>
+        </div>
+
+        <!-- 평가 컨트롤 -->
+        <div class="review-controls" id="reviewControls" style="display: none;">
+            <div class="rating-container">
+                <h4 class="rating-title">Đánh giá video này</h4>
+                <div class="star-rating" id="starRating">
+                    <span class="star" data-rating="1">⭐</span>
+                    <span class="star" data-rating="2">⭐</span>
+                    <span class="star" data-rating="3">⭐</span>
+                    <span class="star" data-rating="4">⭐</span>
+                    <span class="star" data-rating="5">⭐</span>
+                </div>
+                <p class="rating-hint">Đánh giá để nhận +5 điểm</p>
+            </div>
+        </div>
+
+        <!-- 댓글 입력 (선택사항) -->
+        <div class="comment-section" id="commentSection" style="display: none;">
+            <div class="comment-input-container">
+                <input type="text" id="commentInput" placeholder="Thêm bình luận... (+10 điểm)" class="comment-input">
+                <button class="comment-submit" onclick="submitComment()">
+                    <span>➤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포인트 획득 애니메이션 -->
+    <div class="points-animation" id="pointsAnimation">
+        <span class="animated-points">+<span id="animatedPointsValue">0</span></span>
+    </div>
+
+    <!-- 연속 평가 애니메이션 -->
+    <div class="streak-animation" id="streakAnimation">
+        <div class="streak-fire">🔥</div>
+        <div class="streak-text">Đánh giá liên tiếp!</div>
+    </div>
+
+    <!-- 성공/오류 토스트 -->
+    <div class="toast success-toast" id="successToast">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message"></span>
+    </div>
+
+    <div class="toast error-toast" id="errorToast">
+        <span class="toast-icon">⚠️</span>
+        <span class="toast-message"></span>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="video-review-simple.js"></script>
+</body>
+</html>

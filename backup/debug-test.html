@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <div id="debug"></div>
+
+    <script src="config.js"></script>
+    <script>
+        const debugEl = document.getElementById('debug');
+        
+        // 1. Supabase 초기화 테스트
+        debugEl.innerHTML += '<h2>1. Testing Supabase Initialization</h2>';
+        
+        try {
+            const { createClient } = supabase;
+            const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+            debugEl.innerHTML += '<p style="color: green;">✅ Supabase client created successfully</p>';
+            
+            // 2. 게임 설정 로드 테스트
+            debugEl.innerHTML += '<h2>2. Testing Game Config Load</h2>';
+            
+            async function testGameConfig() {
+                try {
+                    // 점수 시스템 로드
+                    const { data: pointsData, error: pointsError } = await supabaseClient
+                        .from('points_system')
+                        .select('*')
+                        .eq('is_active', true)
+                        .order('points', { ascending: false });
+                    
+                    if (pointsError) throw pointsError;
+                    
+                    debugEl.innerHTML += '<p style="color: green;">✅ Points system loaded: ' + pointsData.length + ' items</p>';
+                    debugEl.innerHTML += '<pre>' + JSON.stringify(pointsData.slice(0, 3), null, 2) + '</pre>';
+                    
+                    // 3. 아이디어 로드 테스트
+                    debugEl.innerHTML += '<h2>3. Testing Ideas Load</h2>';
+                    
+                    const { data: availableIdeas, error: availableError } = await supabaseClient
+                        .from('contents_idea')
+                        .select('*')
+                        .eq('is_upload', false)
+                        .limit(5);
+                    
+                    if (availableError) throw availableError;
+                    
+                    debugEl.innerHTML += '<p style="color: green;">✅ Ideas loaded: ' + availableIdeas.length + ' items</p>';
+                    debugEl.innerHTML += '<pre>' + JSON.stringify(availableIdeas.map(i => ({
+                        id: i.id,
+                        title: i.title_vi,
+                        category: i.category
+                    })), null, 2) + '</pre>';
+                    
+                } catch (error) {
+                    debugEl.innerHTML += '<p style="color: red;">❌ Error: ' + error.message + '</p>';
+                    debugEl.innerHTML += '<pre>' + JSON.stringify(error, null, 2) + '</pre>';
+                }
+            }
+            
+            testGameConfig();
+            
+        } catch (error) {
+            debugEl.innerHTML += '<p style="color: red;">❌ Initialization Error: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+</html>
