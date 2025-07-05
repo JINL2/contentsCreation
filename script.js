@@ -188,7 +188,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 연속 일수 체크
         checkDailyStreak();
         
-        console.log('9. 초기화 완료');
+        console.log('9. 인트로 비디오 설정');
+        // 인트로 비디오 설정
+        setupIntroVideo();
+        
+        console.log('10. 초기화 완료');
         // 스켈레톤 UI 숨기기
         hideSkeletonUI();
     } catch (error) {
@@ -2589,5 +2593,148 @@ function navigateToReview(event) {
 
 window.navigateToGallery = navigateToGallery;
 window.navigateToReview = navigateToReview;
+
+// ========================================
+// 인트로 비디오 관련 함수
+// ========================================
+
+// 인트로 비디오 표시 여부 확인
+function shouldShowIntroVideo() {
+    // URL 파라미터로 강제 표시 테스트
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('test') === 'intro') {
+        return true;
+    }
+    
+    const hasSeenIntro = localStorage.getItem('contents_helper_intro_seen');
+    return !hasSeenIntro;
+}
+
+// 인트로 비디오 설정
+function setupIntroVideo() {
+    const introSection = document.getElementById('introVideoSection');
+    const introVideo = document.getElementById('introVideo');
+    const unmuteButton = document.getElementById('unmuteButton');
+    const videoOverlay = document.getElementById('videoOverlay');
+    
+    if (!introSection || !introVideo) return;
+    
+    // 인트로 비디오 표시
+    if (shouldShowIntroVideo()) {
+        introSection.style.display = 'flex';
+        
+        // 비디오 자동 재생 시도
+        introVideo.play().catch(error => {
+            console.log('자동 재생 실패:', error);
+            // 자동 재생이 실패하면 사용자 인터렉션 필요
+        });
+        
+        // 음소거 해제 버튼 클릭
+        unmuteButton.addEventListener('click', () => {
+            introVideo.muted = false;
+            videoOverlay.style.display = 'none';
+        });
+        
+        // 비디오 클릭시 음소거 해제
+        introVideo.addEventListener('click', () => {
+            if (introVideo.muted) {
+                introVideo.muted = false;
+                videoOverlay.style.display = 'none';
+            }
+        });
+        
+        // 비디오가 끝나면 자동으로 닫기 (루프가 아닌 경우)
+        introVideo.addEventListener('ended', () => {
+            if (!introVideo.loop) {
+                skipIntro();
+            }
+        });
+    }
+}
+
+// 인트로 건너뛰기
+function skipIntro() {
+    const introSection = document.getElementById('introVideoSection');
+    const introVideo = document.getElementById('introVideo');
+    
+    if (introSection) {
+        // 페이드 아웃 효과
+        introSection.style.animation = 'fadeOut 0.5s ease-out';
+        
+        setTimeout(() => {
+            introSection.style.display = 'none';
+            if (introVideo) {
+                introVideo.pause();
+                introVideo.currentTime = 0;
+            }
+        }, 500);
+        
+        // 인트로를 봤다고 표시
+        localStorage.setItem('contents_helper_intro_seen', 'true');
+    }
+}
+
+// 페이드 아웃 애니메이션 추가
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// 전역 함수로 내보내기
+window.skipIntro = skipIntro;
+
+// ========================================
+// 페이지 초기화
+// ========================================
+
+// DOM이 로드되면 실행
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePage);
+} else {
+    initializePage();
+}
+
+async function initializePage() {
+    console.log('🔵 Initializing page...');
+    
+    // 스켈레톤 UI 표시
+    showSkeletonUI();
+    
+    // URL 파라미터 파싱
+    const urlParams = new URLSearchParams(window.location.search);
+    currentState.userId = urlParams.get('user_id') || localStorage.getItem(STORAGE_KEYS.userId) || 'anonymous';
+    currentState.userName = urlParams.get('user_name') || 'Anonymous';
+    currentState.companyId = urlParams.get('company_id') || 'default';
+    currentState.storeId = urlParams.get('store_id') || null;
+    currentState.userEmail = urlParams.get('user_email') || null;
+    
+    // 사용자 ID 저장
+    localStorage.setItem(STORAGE_KEYS.userId, currentState.userId);
+    
+    try {
+        // 게임 설정 로드
+        await loadGameConfig();
+        
+        // 사용자 통계 로드
+        await loadUserStats();
+        
+        // 초기화가 완료되면 인트로 비디오만 설정
+        // (아이디어 로드는 이미 진행되었음)
+        
+        // 인트로 비디오 설정
+        setupIntroVideo();
+        
+        // 스켈레톤 UI 숨기기
+        hideSkeletonUI();
+        
+    } catch (error) {
+        console.error('🔴 Initialization error:', error);
+        showError('초기화 중 오류가 발생했습니다.');
+    }
+}
 
 

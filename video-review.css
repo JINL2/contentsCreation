@@ -165,7 +165,7 @@
     border-top: 1px solid rgba(255,255,255,0.1);
     z-index: 100;
     padding: 1rem;
-    display: block;
+    display: block !important;
     height: auto;
     min-height: 160px;
 }
@@ -559,4 +559,31 @@
 /* 토스트 메시지 위치 */
 .toast {
     bottom: 250px;
+}
+
+/* 이미 평가된 비디오 컨테이너 */
+.already-reviewed-container {
+    text-align: center;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.already-reviewed-message {
+    color: #42c767;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* 컨트롤 버튼은 항상 표시 */
+.control-buttons {
+    display: flex !important;
+    gap: 1rem;
+    justify-content: center;
+    opacity: 1 !important;
+    visibility: visible !important;
 }

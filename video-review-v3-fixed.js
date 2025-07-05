@@ -300,10 +300,57 @@ function displayVideo(video, isReviewed) {
     
     // 평가된 비디오 처리
     if (isReviewed) {
+        console.log('🎬 평가된 비디오 처리 시작');
+        
         // 글로벌 함수 호출
         if (typeof window.showReviewedVideoUI === 'function') {
             window.showReviewedVideoUI();
         }
+        
+        // 평가된 비디오의 경우에도 에러 시 자동으로 다음 비디오로
+        videoElement.onerror = (e) => {
+            console.error('❌ Lỗi video đã đánh giá - Event:', e);
+            console.error('❌ Video Error Code:', videoElement.error?.code);
+            console.error('❌ Video URL:', video.video_url);
+            
+            // 에러 비디오 추가
+            if (currentState.currentVideo && !currentState.errorVideos.includes(currentState.currentVideo.id)) {
+                currentState.errorVideos.push(currentState.currentVideo.id);
+            }
+            
+            const errorMessage = getVideoErrorMessage(videoElement.error);
+            showVideoError('Video đã đánh giá gặp lỗi: ' + errorMessage);
+            
+            // UI 숨기고 다음 비디오로
+            playerDiv.style.display = 'none';
+            const bottomControls = document.getElementById('bottomControls');
+            if (bottomControls) {
+                bottomControls.style.display = 'none';
+            }
+            showLoadingState();
+            
+            // 3초 후 다음 비디오로 (평가된 비디오는 좀 더 기다림)
+            setTimeout(() => {
+                hideLoadingState();
+                nextVideo();
+            }, 3000);
+        };
+        
+        // 평가된 비디오는 단순히 재생만 함
+        videoElement.oncanplay = () => {
+            console.log('✅ Video đã đánh giá sẵn sàng phát');
+            currentState.videoCanPlay = true;
+            
+            // 음소거 상태로 재생 시도
+            videoElement.muted = true;
+            videoElement.play()
+                .then(() => {
+                    console.log('▶️ Video đã đánh giá đang phát');
+                })
+                .catch(error => {
+                    console.error('❌ Không thể phát video đã đánh giá:', error);
+                });
+        };
     } else {
         // 미평가 비디오 UI 복원
         if (typeof window.showUnreviewedVideoUI === 'function') {
@@ -454,19 +501,30 @@ function displayVideo(video, isReviewed) {
     // 비디오 로드
     videoElement.load();
     
-    // 타임아웃 설정 (15초)
-    const loadTimeout = setTimeout(() => {
-        if (!currentState.videoCanPlay && !isReviewed) {
-            console.log('⏱️ Video tải quá lâu');
-            showVideoError('Video tải quá lâu. Chuyển sang video khác...');
-            nextVideo();
+    // 타임아웃 설정 (15초) - 평가되지 않은 비디오에만 적용
+    if (!isReviewed) {
+        // 기존 타임아웃 취소
+        if (window.currentLoadTimeout) {
+            clearTimeout(window.currentLoadTimeout);
         }
-    }, 15000);
+        
+        window.currentLoadTimeout = setTimeout(() => {
+            if (!currentState.videoCanPlay) {
+                console.log('⏱️ Video tải quá lâu');
+                showVideoError('Video tải quá lâu. Chuyển sang video khác...');
+                window.currentLoadTimeout = null;
+                nextVideo();
+            }
+        }, 15000);
+    }
     
     // 재생 가능 시 타임아웃 취소
     const originalOnCanPlay = videoElement.oncanplay;
     videoElement.oncanplay = function() {
-        clearTimeout(loadTimeout);
+        if (window.currentLoadTimeout) {
+            clearTimeout(window.currentLoadTimeout);
+            window.currentLoadTimeout = null;
+        }
         if (originalOnCanPlay) originalOnCanPlay.call(this);
     };
     
@@ -513,6 +571,13 @@ function updateVideoProgress() {
 // 다음 비디오
 function nextVideo() {
     currentState.currentVideoIndex++;
+    
+    // 기존 타임아웃 취소
+    if (window.currentLoadTimeout) {
+        clearTimeout(window.currentLoadTimeout);
+        window.currentLoadTimeout = null;
+        console.log('🕒 기존 타임아웃 취소');
+    }
     
     // 비디오 정지
     const videoElement = document.getElementById('reviewVideo');
@@ -824,7 +889,7 @@ async function updateUserPoints(points) {
         
         const { error: updateError } = await supabaseClient
             .from('user_progress')
-            .update({ 
+            .update({
                 total_points: newTotalPoints,
                 updated_at: new Date().toISOString()
             })

@@ -130,18 +130,34 @@
         window.showReviewedVideoUI = function() {
             const starContainer = document.getElementById('starRatingContainer');
             const reviewedContainer = document.getElementById('alreadyReviewedContainer');
+            const controlButtons = document.querySelector('.control-buttons');
             
             if (starContainer) starContainer.style.display = 'none';
             if (reviewedContainer) reviewedContainer.style.display = 'block';
+            
+            // 컨트롤 버튼은 항상 표시
+            if (controlButtons) {
+                controlButtons.style.display = 'flex';
+                controlButtons.style.opacity = '1';
+                controlButtons.style.visibility = 'visible';
+            }
         };
         
         // 미평가 비디오 UI 복원
         window.showUnreviewedVideoUI = function() {
             const starContainer = document.getElementById('starRatingContainer');
             const reviewedContainer = document.getElementById('alreadyReviewedContainer');
+            const controlButtons = document.querySelector('.control-buttons');
             
             if (starContainer) starContainer.style.display = 'block';
             if (reviewedContainer) reviewedContainer.style.display = 'none';
+            
+            // 컨트롤 버튼은 항상 표시
+            if (controlButtons) {
+                controlButtons.style.display = 'flex';
+                controlButtons.style.opacity = '1';
+                controlButtons.style.visibility = 'visible';
+            }
             
             // 별점 이벤트 재설정
             if (typeof setupStarRating === 'function') {

@@ -84,6 +84,35 @@
 
         <!-- 메인 컨텐츠 -->
         <main class="main-content">
+            <!-- 인트로 비디오 섹션 -->
+            <div id="introVideoSection" class="intro-video-section" style="display: none;">
+                <div class="intro-video-container">
+                    <h2 class="intro-title">🎬 Chào mừng bạn đến với Contents Helper!</h2>
+                    <p class="intro-subtitle">Nhấn vào video để bật âm thanh</p>
+                    <div class="video-wrapper">
+                        <video id="introVideo" 
+                               class="intro-video" 
+                               muted 
+                               autoplay
+                               playsinline 
+                               preload="auto"
+                               loop>
+                            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                            <source src="https://www.w3schools.com/html/mov_bbb.ogg" type="video/ogg">
+                            Trình duyệt của bạn không hỗ trợ video.
+                        </video>
+                        <div class="video-overlay" id="videoOverlay">
+                            <button class="unmute-button" id="unmuteButton">
+                                <span class="sound-icon">🔊</span>
+                                <span class="button-text">Bật âm thanh</span>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="skip-intro-button" onclick="skipIntro()">
+                        Bỏ qua và bắt đầu →
+                    </button>
+                </div>
+            </div>
             <!-- Step 1: 아이디어 선택 -->
             <section id="ideaSelection" class="content-section active">
                 <h2 class="section-title">Hôm nay chúng ta sẽ tạo nội dung gì? 🎯</h2>
