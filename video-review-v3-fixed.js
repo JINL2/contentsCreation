@@ -94,7 +94,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAllVideos();
 });
 
-
+// 음소거 해제 버튼 표시 함수 추가
+function showUnmuteButton() {
+    // 기존 버튼이 있으면 제거
+    let existingBtn = document.getElementById('unmuteButton');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+    
+    // 음소거 해제 버튼 생성
+    const unmuteBtn = document.createElement('button');
+    unmuteBtn.id = 'unmuteButton';
+    unmuteBtn.innerHTML = '🔊 Bật âm thanh';
+    unmuteBtn.style.cssText = `
+        position: fixed;
+        bottom: 150px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ff6b35;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 1001;
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        transition: all 0.3s ease;
+    `;
+    
+    unmuteBtn.onclick = function() {
+        const videoElement = document.getElementById('reviewVideo');
+        if (videoElement) {
+            videoElement.muted = false;
+            videoElement.volume = 1.0;
+            console.log('🔊 Âm thanh được bật');
+            this.remove();
+            showSuccess('Âm thanh đã được bật!');
+        }
+    };
+    
+    unmuteBtn.onmouseover = function() {
+        this.style.transform = 'translateX(-50%) scale(1.05)';
+        this.style.boxShadow = '0 6px 16px rgba(255, 107, 53, 0.4)';
+    };
+    
+    unmuteBtn.onmouseout = function() {
+        this.style.transform = 'translateX(-50%) scale(1)';
+        this.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.3)';
+    };
+    
+    document.body.appendChild(unmuteBtn);
+}
 
 // 오늘 평가 진행 상황 로드
 async function loadTodayProgress() {
@@ -265,6 +317,23 @@ function displayVideo(video, isReviewed) {
     // 비디오 설정
     videoElement.crossOrigin = 'anonymous';
     videoElement.src = video.video_url;
+    videoElement.volume = 1.0; // 볼륨을 최대로 설정
+    
+    // 비디오 클릭 이벤트 추가
+    videoElement.onclick = function() {
+        if (this.muted) {
+            this.muted = false;
+            this.volume = 1.0;
+            console.log('🔊 Âm thanh được bật bằng cách nhấp vào video');
+            
+            // 음소거 해제 버튼 제거
+            const unmuteBtn = document.getElementById('unmuteButton');
+            if (unmuteBtn) {
+                unmuteBtn.remove();
+            }
+            showSuccess('Âm thanh đã được bật!');
+        }
+    };
     
     // 이벤트 리스너 초기화
     videoElement.onloadedmetadata = null;
@@ -292,33 +361,53 @@ function displayVideo(video, isReviewed) {
             console.log('✅ Video sẵn sàng phát');
             currentState.videoCanPlay = true;
             
-            // 자동 재생
+            // 먼저 음소거 없이 자동 재생 시도
+            videoElement.muted = false;
+            
             const playPromise = videoElement.play();
             
             if (playPromise !== undefined) {
                 playPromise
                     .then(() => {
-                        console.log('▶️ Tự động phát thành công');
-                        // 자동 재생 성공시 음소거 해제
-                        videoElement.muted = false;
+                        console.log('▶️ Tự động phát thành công với âm thanh');
+                        // 성공적으로 재생되면 추가 작업 필요 없음
                     })
                     .catch(error => {
-                        console.log('🔇 Tự động phát thất bại, thử lại với âm lượng tắt...');
+                        console.log('🔇 Âm thanh bị chặn, thử lại với âm lượng tắt...');
+                        
+                        // 음소거하고 재생
                         videoElement.muted = true;
-                        return videoElement.play();
-                    })
-                    .then(() => {
-                        // 음소거로 재생 성공시, 0.5초 후 음소거 해제 시도
-                        if (videoElement.muted) {
-                            setTimeout(() => {
-                                videoElement.muted = false;
-                                console.log('🔊 Âm thanh được bật');
-                            }, 500);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('❌ Không thể phát video:', error);
-                        showVideoError('Không thể phát video. Vui lòng nhấn play.');
+                        videoElement.play()
+                            .then(() => {
+                                console.log('🔇 Video đang phát ở chế độ tắt tiếng');
+                                
+                                // 0.5초 후 비디오 일시정지하고 음소거 해제 버튼 표시
+                                setTimeout(() => {
+                                    videoElement.pause();
+                                    console.log('⏸️ Video tạm dừng để bật âm thanh');
+                                    
+                                    // 음소거 해제 버튼 표시
+                                    showUnmuteButton();
+                                    
+                                    // 버튼 클릭 시 재생 재개
+                                    const originalOnclick = document.getElementById('unmuteButton').onclick;
+                                    document.getElementById('unmuteButton').onclick = function() {
+                                        const video = document.getElementById('reviewVideo');
+                                        if (video) {
+                                            video.muted = false;
+                                            video.volume = 1.0;
+                                            video.play();
+                                            console.log('🔊 Âm thanh được bật và video tiếp tục phát');
+                                            this.remove();
+                                            showSuccess('Âm thanh đã được bật!');
+                                        }
+                                    };
+                                }, 500);
+                            })
+                            .catch(error => {
+                                console.error('❌ Không thể phát video:', error);
+                                showVideoError('Không thể phát video. Vui lòng nhấn play.');
+                            });
                     });
             }
         };
@@ -349,7 +438,10 @@ function displayVideo(video, isReviewed) {
             
             // UI 숨기고 다음 비디오
             playerDiv.style.display = 'none';
-            controlsDiv.style.display = 'none';
+            const bottomControls = document.getElementById('bottomControls');
+            if (bottomControls) {
+                bottomControls.style.display = 'none';
+            }
             showLoadingState();
             
             setTimeout(() => {
@@ -436,6 +528,12 @@ function nextVideo() {
     const floatingBtn = document.getElementById('floatingNextBtn');
     if (floatingBtn) {
         floatingBtn.classList.remove('show');
+    }
+    
+    // 음소거 해제 버튼 제거
+    const unmuteBtn = document.getElementById('unmuteButton');
+    if (unmuteBtn) {
+        unmuteBtn.remove();
     }
     
     // 다음 비디오 표시
