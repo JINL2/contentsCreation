@@ -188,11 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 연속 일수 체크
         checkDailyStreak();
         
-        console.log('9. 인트로 비디오 설정');
-        // 인트로 비디오 설정
-        setupIntroVideo();
-        
-        console.log('10. 초기화 완료');
+        console.log('9. 초기화 완료');
         // 스켈레톤 UI 숨기기
         hideSkeletonUI();
     } catch (error) {
@@ -539,12 +535,12 @@ async function loadContentIdeas() {
     container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Đang tải ý tưởng...</p></div>';
     
     try {
-        // 모든 사용 가능한 아이디어 가져오기 (is_choosen 상태와 관계없이)
+        // 모든 사용 가능한 아이디어 가져오기
         const { data: allIdeas, error } = await supabaseClient
             .from('contents_idea')
             .select('*')
             .eq('is_upload', false)
-            .eq('is_auto_created', true);  // 시스템이 만든 아이디어만
+            .eq('is_not_related', false);  // 관련 없다고 표시되지 않은 아이디어만
         
         if (error) throw error;
         
@@ -561,6 +557,26 @@ async function loadContentIdeas() {
         // 5개 선택
         const selectedIdeas = shuffled.slice(0, Math.min(5, shuffled.length));
         
+        // 제작자 ID 수집 (created_by_user_id가 있는 경우)
+        const creatorIds = selectedIdeas
+            .filter(idea => idea.created_by_user_id)
+            .map(idea => idea.created_by_user_id);
+        
+        // 제작자 정보 가져오기
+        let creatorMap = {};
+        if (creatorIds.length > 0) {
+            const { data: creators, error: creatorsError } = await supabaseClient
+                .from('user_progress')
+                .select('user_id, metadata')
+                .in('user_id', creatorIds);
+            
+            if (!creatorsError && creators) {
+                creators.forEach(creator => {
+                    creatorMap[creator.user_id] = creator.metadata?.name || 'Anonymous';
+                });
+            }
+        }
+        
         console.log('🎯 선택된 아이디어:');
         selectedIdeas.forEach((idea, idx) => {
             console.log(`  ${idx + 1}. ${idea.title_vi} (ID: ${idea.id}, is_choosen: ${idea.is_choosen})`);
@@ -569,7 +585,7 @@ async function loadContentIdeas() {
         // UI 업데이트
         container.innerHTML = '';
         selectedIdeas.forEach(idea => {
-            const card = createIdeaCard(idea);
+            const card = createIdeaCard(idea, creatorMap[idea.created_by_user_id]);
             container.appendChild(card);
         });
         
@@ -598,7 +614,7 @@ async function loadContentIdeas() {
 }
 
 // 아이디어 카드 생성
-function createIdeaCard(idea) {
+function createIdeaCard(idea, creatorName) {
     const card = document.createElement('div');
     card.className = 'idea-card';
     if (idea.is_choosen) {
@@ -612,10 +628,13 @@ function createIdeaCard(idea) {
     const cardId = `idea-card-${idea.id}`;
     
     card.innerHTML = `
-        ${idea.is_choosen ? '<div class="choosen-badge">🎯 Ý tưởng đã chọn trước đó</div>' : ''}
         <div class="idea-card-header" onclick="toggleIdeaCard('${cardId}')">
             <div class="idea-card-summary">
-                <div class="idea-category">${categoryEmoji} ${idea.category}</div>
+                ${idea.is_choosen ? '<div class="choosen-badge">🎯 Ý tưởng đã chọn</div>' : ''}
+                <div class="idea-category">
+                    ${categoryEmoji} ${idea.category}
+                    ${idea.created_by_user_id ? '<span class="creator-icon">👤</span>' : ''}
+                </div>
                 <h3 class="idea-title">${idea.title_vi}</h3>
                 ${idea.title_ko ? `<p class="idea-subtitle">${idea.title_ko}</p>` : ''}
                 ${idea.hook_text ? `<p class="idea-hook">📢 ${idea.hook_text}</p>` : ''}
@@ -628,6 +647,7 @@ function createIdeaCard(idea) {
             <div class="idea-info">
                 <p><strong>Cảm xúc:</strong> ${idea.emotion} ${emotionEmoji}</p>
                 <p><strong>Đối tượng:</strong> ${idea.target_audience}</p>
+                ${creatorName ? `<p><strong>Người tạo:</strong> ${creatorName}</p>` : ''}
                 ${idea.choose_count > 0 ? `<p><strong>Đã được chọn:</strong> ${idea.choose_count} lần</p>` : ''}
             </div>
             ${idea.viral_tags && idea.viral_tags.length > 0 ? `
@@ -638,9 +658,14 @@ function createIdeaCard(idea) {
             <div class="idea-footer">
                 <span class="idea-points">⭐ +${GAME_CONFIG.points.select_idea || 10} điểm</span>
             </div>
-            <button class="btn btn-select" onclick="selectIdea(${JSON.stringify(idea).replace(/"/g, '&quot;')})">
-                Chọn ý tưởng này →
-            </button>
+            <div class="idea-actions">
+                <button class="btn btn-remove" onclick="markNotRelated(${idea.id})">
+                    ❌ Ẩn ý tưởng
+                </button>
+                <button class="btn btn-select" onclick="selectIdea(${JSON.stringify(idea).replace(/"/g, '&quot;')})">
+                    ✅ Chọn ngay →
+                </button>
+            </div>
         </div>
     `;
     
@@ -2595,97 +2620,180 @@ window.navigateToGallery = navigateToGallery;
 window.navigateToReview = navigateToReview;
 
 // ========================================
-// 인트로 비디오 관련 함수
+// 모바일 친화적 확인 대화상자
 // ========================================
 
-// 인트로 비디오 표시 여부 확인
-function shouldShowIntroVideo() {
-    // URL 파라미터로 강제 표시 테스트
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('test') === 'intro') {
-        return true;
-    }
-    
-    const hasSeenIntro = localStorage.getItem('contents_helper_intro_seen');
-    return !hasSeenIntro;
-}
-
-// 인트로 비디오 설정
-function setupIntroVideo() {
-    const introSection = document.getElementById('introVideoSection');
-    const introVideo = document.getElementById('introVideo');
-    const unmuteButton = document.getElementById('unmuteButton');
-    const videoOverlay = document.getElementById('videoOverlay');
-    
-    if (!introSection || !introVideo) return;
-    
-    // 인트로 비디오 표시
-    if (shouldShowIntroVideo()) {
-        introSection.style.display = 'flex';
+// 모바일 확인 대화상자 표시 함수
+async function showMobileConfirm(title, message, confirmText = 'Xác nhận', cancelText = 'Hủy') {
+    return new Promise((resolve) => {
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('mobileConfirmDialog');
+        if (existingDialog) {
+            existingDialog.remove();
+        }
         
-        // 비디오 자동 재생 시도
-        introVideo.play().catch(error => {
-            console.log('자동 재생 실패:', error);
-            // 자동 재생이 실패하면 사용자 인터렉션 필요
-        });
+        // 모바일 친화적 다이얼로그 생성
+        const dialogHTML = `
+            <div id="mobileConfirmDialog" class="mobile-confirm-overlay">
+                <div class="mobile-confirm-dialog">
+                    <div class="mobile-confirm-content">
+                        <h3 class="mobile-confirm-title">${title}</h3>
+                        <p class="mobile-confirm-message">${message}</p>
+                    </div>
+                    <div class="mobile-confirm-actions">
+                        <button class="mobile-confirm-cancel" onclick="closeMobileConfirm(false)">
+                            ${cancelText}
+                        </button>
+                        <button class="mobile-confirm-ok" onclick="closeMobileConfirm(true)">
+                            ${confirmText}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
         
-        // 음소거 해제 버튼 클릭
-        unmuteButton.addEventListener('click', () => {
-            introVideo.muted = false;
-            videoOverlay.style.display = 'none';
-        });
+        document.body.insertAdjacentHTML('beforeend', dialogHTML);
         
-        // 비디오 클릭시 음소거 해제
-        introVideo.addEventListener('click', () => {
-            if (introVideo.muted) {
-                introVideo.muted = false;
-                videoOverlay.style.display = 'none';
-            }
-        });
+        // 배경 스크롤 방지
+        document.body.style.overflow = 'hidden';
         
-        // 비디오가 끝나면 자동으로 닫기 (루프가 아닌 경우)
-        introVideo.addEventListener('ended', () => {
-            if (!introVideo.loop) {
-                skipIntro();
-            }
-        });
-    }
-}
-
-// 인트로 건너뛰기
-function skipIntro() {
-    const introSection = document.getElementById('introVideoSection');
-    const introVideo = document.getElementById('introVideo');
-    
-    if (introSection) {
-        // 페이드 아웃 효과
-        introSection.style.animation = 'fadeOut 0.5s ease-out';
-        
+        // 애니메이션을 위한 약간의 딜레이
         setTimeout(() => {
-            introSection.style.display = 'none';
-            if (introVideo) {
-                introVideo.pause();
-                introVideo.currentTime = 0;
-            }
-        }, 500);
+            document.getElementById('mobileConfirmDialog').classList.add('show');
+        }, 10);
         
-        // 인트로를 봤다고 표시
-        localStorage.setItem('contents_helper_intro_seen', 'true');
+        // 전역 변수에 resolve 함수 저장
+        window.mobileConfirmResolve = resolve;
+    });
+}
+
+// 모바일 확인 대화상자 닫기
+function closeMobileConfirm(result) {
+    const dialog = document.getElementById('mobileConfirmDialog');
+    if (dialog) {
+        dialog.classList.remove('show');
+        
+        // 애니메이션 후 제거
+        setTimeout(() => {
+            dialog.remove();
+            document.body.style.overflow = '';
+            
+            // Promise resolve
+            if (window.mobileConfirmResolve) {
+                window.mobileConfirmResolve(result);
+                delete window.mobileConfirmResolve;
+            }
+        }, 300);
     }
 }
 
-// 페이드 아웃 애니메이션 추가
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; }
+// 관련 없음 처리 함수
+async function markNotRelated(ideaId) {
+    // 모바일 친화적 확인 UI 표시
+    const confirmed = await showMobileConfirm(
+        'Ẩn ý tưởng này?',
+        'Ý tưởng này sẽ không xuất hiện lại.',
+        'Ẩn ý tưởng',
+        'Hủy'
+    );
+    
+    if (confirmed) {
+        showLoading('Đang xử lý...');
+        
+        try {
+            const { error } = await supabaseClient
+                .from('contents_idea')
+                .update({ is_not_related: true })
+                .eq('id', ideaId);
+            
+            if (error) throw error;
+            
+            // 카드 애니메이션 후 제거
+            const card = document.querySelector(`#idea-card-${ideaId}`);
+            if (card) {
+                card.style.transition = 'all 0.3s ease-out';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    card.remove();
+                    
+                    // 새 아이디어 로드할지 확인 (현재 표시된 카드가 5개 미만일 때)
+                    const remainingCards = document.querySelectorAll('.idea-card').length;
+                    if (remainingCards < 5) {
+                        // 새 아이디어 1개만 추가 로드
+                        loadOneMoreIdea();
+                    }
+                }, 300);
+                
+                showSuccess('Ý tưởng đã được ẩn thành công!');
+            }
+        } catch (error) {
+            console.error('관련 없음 처리 오류:', error);
+            showError('Có lỗi khi xử lý. Vui lòng thử lại.');
+        } finally {
+            hideLoading();
+        }
     }
-`;
-document.head.appendChild(style);
+}
+
+// 하나의 아이디어만 추가 로드
+async function loadOneMoreIdea() {
+    try {
+        // 현재 표시된 아이디어 ID 수집
+        const displayedIds = Array.from(document.querySelectorAll('.idea-card'))
+            .map(card => parseInt(card.id.replace('idea-card-', '')));
+        
+        // 새로운 아이디어 1개 가져오기
+        const { data: newIdeas, error } = await supabaseClient
+            .from('contents_idea')
+            .select('*')
+            .eq('is_upload', false)
+            .eq('is_not_related', false)
+            .not('id', 'in', `(${displayedIds.join(',')})`)
+            .limit(1);
+        
+        if (error) throw error;
+        
+        if (newIdeas && newIdeas.length > 0) {
+            const newIdea = newIdeas[0];
+            
+            // 제작자 정보 가져오기
+            let creatorName = null;
+            if (newIdea.created_by_user_id) {
+                const { data: creator, error: creatorError } = await supabaseClient
+                    .from('user_progress')
+                    .select('metadata')
+                    .eq('user_id', newIdea.created_by_user_id)
+                    .single();
+                
+                if (!creatorError && creator) {
+                    creatorName = creator.metadata?.name || 'Anonymous';
+                }
+            }
+            
+            const container = document.getElementById('ideaCards');
+            const customButton = container.querySelector('.custom-idea-card');
+            const newCard = createIdeaCard(newIdea, creatorName);
+            
+            // 커스텀 아이디어 버튼 앞에 삽입
+            if (customButton) {
+                container.insertBefore(newCard, customButton);
+            } else {
+                container.appendChild(newCard);
+            }
+        }
+    } catch (error) {
+        console.error('추가 아이디어 로드 오류:', error);
+    }
+}
 
 // 전역 함수로 내보내기
-window.skipIntro = skipIntro;
+window.showMobileConfirm = showMobileConfirm;
+window.closeMobileConfirm = closeMobileConfirm;
+window.markNotRelated = markNotRelated;
+
+
 
 // ========================================
 // 페이지 초기화
@@ -2721,12 +2829,6 @@ async function initializePage() {
         
         // 사용자 통계 로드
         await loadUserStats();
-        
-        // 초기화가 완료되면 인트로 비디오만 설정
-        // (아이디어 로드는 이미 진행되었음)
-        
-        // 인트로 비디오 설정
-        setupIntroVideo();
         
         // 스켈레톤 UI 숨기기
         hideSkeletonUI();
