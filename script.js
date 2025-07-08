@@ -938,9 +938,9 @@ function handleVideoSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
     
-    // 파일 크기 확인 (100MB 제한)
-    if (file.size > 100 * 1024 * 1024) {
-        showError('Kích thước file phải dưới 100MB.');
+    // 파일 크기 확인 (150MB 제한)
+    if (file.size > 150 * 1024 * 1024) {
+        showError('Kích thước file phải dưới 150MB.');
         return;
     }
     
